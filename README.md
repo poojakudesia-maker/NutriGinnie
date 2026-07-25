@@ -1,0 +1,166 @@
+# NutriPing
+
+A production-ready Progressive Web App that turns a user's health profile, uploaded diet PDFs, and
+pasted recipes into a personalized, AI-generated 7-day Indian diet plan — with daily WhatsApp
+reminders (text + voice) for the meal plan and grocery list.
+
+## Tech stack
+
+- **Frontend:** Next.js 16 (App Router), TypeScript, Tailwind CSS v4, installable/offline-capable PWA
+- **Backend:** Next.js Route Handlers (Node.js), PostgreSQL via Prisma ORM
+- **AI:** Anthropic Claude — PDF parsing, recipe structuring, diet plan generation
+- **Messaging:** Twilio WhatsApp API (text + voice notes), Meta Cloud API as an alternative
+- **Voice:** ElevenLabs TTS (Google Cloud TTS as a fallback)
+- **Scheduler:** Vercel Cron (`vercel.json`) or a standalone `node-cron` worker for Railway/Render
+
+## Project structure
+
+```
+app/
+  (app)/                  Authenticated shell (bottom nav) — redirects to /onboarding without a session
+    dashboard/            BMI/BMR/TDEE/calorie dashboard, weight + water trackers
+    plan/                 Weekly plan grid
+    plan/[day]/           Daily meal breakdown + "send to WhatsApp" button
+    grocery/              Grocery list (prev/next day navigation)
+    settings/             WhatsApp numbers, PDF upload, recipe paste, saved recipes
+  onboarding/             Multi-section onboarding form (profile, health, food prefs, WhatsApp)
+  api/
+    users/                Create profile (+ calculation engine), fetch/update profile & settings
+    uploads/pdf/           PDF upload -> text extraction -> AI recipe structuring
+    recipes/               Paste recipe text / Instagram caption -> AI structuring
+    diet-plan/             Generate + fetch the 7-day AI diet plan
+    grocery/                Generate + fetch a day's aggregated grocery list
+    whatsapp/send/          Manual "send now" trigger (diet plan or grocery list)
+    whatsapp/webhook/       Twilio delivery-status callback
+    tts/voice/              Public audio endpoint Twilio fetches for the voice note
+    cron/daily-diet/        8 AM job: sends today's plan to every user
+    cron/grocery-reminder/  5 PM job: sends tomorrow's grocery list to every user
+    weight/, water/         Bonus trackers
+  manifest.ts             PWA manifest (installable)
+lib/
+  calculations.ts         BMI / BMR (Mifflin-St Jeor) / TDEE / deficit / protein targets + GLP-1 rules
+  ai/                     Claude client, PDF parser, recipe parser, diet plan generator
+  whatsapp/               Twilio client, message templates, send dispatcher
+  tts/                    ElevenLabs / Google TTS client
+  grocery/aggregator.ts   Dedupes + sums ingredients across a day's meals, categorized
+  validation/schemas.ts   Zod schemas (onboarding, phone numbers, recipes, etc.)
+  session.ts              Cookie-based "current user" (no separate login flow)
+prisma/schema.prisma      Users, Recipes, MealPlans, Groceries, WhatsAppLogs, WeightLogs, WaterLogs
+public/sw.js              Service worker (offline cache for diet plan / grocery list)
+scripts/scheduler.ts      node-cron worker for platforms without native cron (Railway/Render)
+vercel.json               Vercel Cron schedule (8 AM & 5 PM IST)
+```
+
+## How the pieces fit together
+
+1. **Onboarding** (`/onboarding`) collects the profile and POSTs to `/api/users`, which runs
+   `lib/calculations.ts` to compute BMI/BMR/TDEE/calorie target/protein target (applying the GLP-1
+   protocol and a safe-calorie floor) and stores everything on the `User` row. A session cookie
+   (`nutriping_user_id`) is set — there's no separate login system, matching the single-user-per-device
+   nature of the WhatsApp reminders.
+2. **Settings** (`/settings`) lets the user upload a diet-plan PDF or paste a recipe/Instagram
+   caption. Both flows extract text and hand it to Claude (`lib/ai/recipeParser.ts`), which returns
+   structured `Recipe` rows (ingredients, macros, micros — AI-estimated when the source doesn't state
+   them, flagged via `aiEstimated`).
+3. **Weekly Plan** (`/plan`) calls `/api/diet-plan/generate`, which sends the user's targets,
+   restrictions, and saved recipes to Claude (`lib/ai/dietPlanGenerator.ts`) and persists 7 `MealPlan`
+   rows (one per day, keyed by `weekStartDate` + `dayIndex`).
+4. **Grocery List** (`/grocery`) aggregates a single day's ingredients (`lib/grocery/aggregator.ts`) —
+   dedup + sum by name/unit, categorized (produce/dairy/grains/protein/spices/other).
+5. **WhatsApp**: `lib/whatsapp/dispatch.ts` sends the formatted text (`lib/whatsapp/templates.ts`) via
+   Twilio, plus a voice note whose media URL points at `/api/tts/voice` (generated on-demand from the
+   same day's plan). The cron routes (`/api/cron/daily-diet` at 8 AM, `/api/cron/grocery-reminder` at
+   5 PM) run this for every user; the UI's "Send now" button runs the same code path manually.
+
+## Setup
+
+### 1. Install dependencies
+
+```bash
+npm install
+```
+
+### 2. Configure environment variables
+
+```bash
+cp .env.example .env
+```
+
+Fill in `DATABASE_URL` at minimum to run the app locally; AI/WhatsApp/TTS keys are only needed to
+exercise those specific features (see `.env.example` for the full list and where to get each key).
+
+### 3. Database
+
+```bash
+npx prisma migrate dev --name init   # creates tables in your Postgres instance
+npm run db:studio                    # optional: browse data
+```
+
+Works unmodified against Supabase, Neon, or Railway Postgres — just paste their connection string
+into `DATABASE_URL`.
+
+### 4. Run the app
+
+```bash
+npm run dev
+```
+
+Visit `http://localhost:3000` — you'll land on `/onboarding` until a profile exists.
+
+### 5. Enable AI features
+
+Set `ANTHROPIC_API_KEY` (get one at console.anthropic.com). Without it, PDF upload, recipe parsing,
+and diet plan generation return a clear error instead of silently failing.
+
+## WhatsApp integration steps (Twilio)
+
+1. Create a Twilio account and open the [WhatsApp sandbox](https://console.twilio.com/us1/develop/sms/try-it-out/whatsapp-learn) (or apply for a production WhatsApp Business sender for real users).
+2. Copy `Account SID` and `Auth Token` into `TWILIO_ACCOUNT_SID` / `TWILIO_AUTH_TOKEN`.
+3. Set `TWILIO_WHATSAPP_FROM` to the sandbox number shown in the console (e.g. `+14155238886`) or
+   your approved sender.
+4. In the Twilio console, set the WhatsApp sender's **status callback URL** to
+   `https://<your-app>/api/whatsapp/webhook` so delivery/read receipts update `WhatsAppLog` rows.
+5. Each user must send the sandbox's join code (e.g. `join <word-pair>`) once from WhatsApp before
+   Twilio is allowed to message them — a sandbox-only requirement, not needed on a production sender.
+6. Add each user's number (with country code) from the app's Settings screen. Test with
+   "Send now" on a daily plan page before relying on the 8 AM / 5 PM cron jobs.
+
+**Switching to Meta's WhatsApp Cloud API instead:** `lib/whatsapp/client.ts` already includes
+`sendMetaCloudTemplate`. Set `META_WHATSAPP_TOKEN` / `META_PHONE_NUMBER_ID`, create an approved
+message template in Meta Business Manager, and swap the calls in `lib/whatsapp/dispatch.ts` to use it.
+
+## Scheduler
+
+- **Vercel:** `vercel.json` already declares the two cron jobs. Set `CRON_SECRET` in your Vercel
+  project env vars — Vercel automatically sends it as `Authorization: Bearer <CRON_SECRET>`, which
+  `lib/cron/auth.ts` verifies.
+- **Railway / Render (no native cron):** run `npm run worker` as a second service/process. It hits
+  the same `/api/cron/*` routes on an internal schedule using `node-cron`, so behavior is identical.
+
+## Deployment
+
+- **Frontend + API:** Vercel (`vercel --prod`), or any Node host (Railway/Render) since API routes are
+  just Node route handlers.
+- **Database:** Supabase or Neon (serverless Postgres) — paste the pooled connection string into
+  `DATABASE_URL` and run `npm run db:deploy` (applies migrations without prompting) as part of your
+  deploy step.
+- Remember to set `APP_URL` / `NEXT_PUBLIC_APP_URL` to the deployed URL — it's used to build the
+  publicly-fetchable TTS voice-note link that Twilio downloads.
+
+## Validation & safety rules already enforced
+
+- Calorie targets can never go below 1500 kcal (male) / 1200 kcal (female), and a warning is
+  surfaced if the requested deficit would exceed 1000 kcal/day or push the target below 80% of BMR
+  (`lib/calculations.ts`).
+- GLP-1 users automatically get a smaller 300–400 kcal deficit and a higher protein target
+  (1.6 g/kg) instead of the standard 500 kcal deficit / 1.2 g/kg.
+- WhatsApp numbers are validated as E.164 (`+` + country code + digits) and capped at 2 per user.
+- Recipes with no explicit nutrition data are AI-estimated and flagged (`aiEstimated: true`) instead
+  of silently defaulting to zero.
+
+## Bonus features included
+
+- Weight tracking graph (sparkline) on the dashboard, logged from the same screen.
+- Water intake tracker with a daily goal bar.
+- Offline-cached diet plan / grocery list via the service worker (`public/sw.js`), so the app remains
+  usable with spotty connectivity once a plan has been loaded once.
