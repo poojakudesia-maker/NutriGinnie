@@ -30,9 +30,16 @@ enum DietType {
 
 enum RecipeSource {
   PDF
+  DOCX
   INSTAGRAM
+  YOUTUBE
   MANUAL_TEXT
   AI_GENERATED
+}
+
+enum AuthProvider {
+  LOCAL
+  GOOGLE
 }
 
 enum MealSlot {
@@ -61,17 +68,20 @@ model User {
   id String @id @default(cuid())
 
   // Login credentials
-  email        String @unique
-  passwordHash String
+  email        String       @unique
+  passwordHash String? // null for Google-authenticated accounts
+  authProvider AuthProvider @default(LOCAL)
+  googleId     String?      @unique
 
-  // Basic profile
+  // Basic profile (nullable: a Google sign-in creates the row before the
+  // health/food profile is filled in via /onboarding/complete-profile)
   name           String
-  age            Int
-  gender         Gender
-  heightCm       Float
-  weightKg       Float
-  targetWeightKg Float
-  activityLevel  ActivityLevel
+  age            Int?
+  gender         Gender?
+  heightCm       Float?
+  weightKg       Float?
+  targetWeightKg Float?
+  activityLevel  ActivityLevel?
 
   // Health inputs
   medicalConditions String[] @default([])

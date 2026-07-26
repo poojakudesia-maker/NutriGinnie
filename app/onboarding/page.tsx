@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentUserId } from "@/lib/session";
 import OnboardingForm from "@/components/onboarding/OnboardingForm";
+import GoogleButton from "@/components/auth/GoogleButton";
 
 export default async function OnboardingPage() {
   const userId = await getCurrentUserId();
@@ -12,6 +13,14 @@ export default async function OnboardingPage() {
       <div className="mb-6 text-center">
         <h1 className="text-2xl font-bold text-emerald-700">NutriPing</h1>
         <p className="text-sm text-slate-500">Tell us about yourself to get your personalized diet plan.</p>
+      </div>
+      <div className="mb-5">
+        <GoogleButton />
+        <div className="my-4 flex items-center gap-3 text-xs text-slate-400">
+          <div className="h-px flex-1 bg-slate-200" />
+          or sign up with email
+          <div className="h-px flex-1 bg-slate-200" />
+        </div>
       </div>
       <OnboardingForm />
       <p className="mt-4 text-center text-sm text-slate-500">

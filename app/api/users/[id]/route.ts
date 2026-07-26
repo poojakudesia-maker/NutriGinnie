@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { computeCalorieProfile } from "@/lib/calculations";
-import { settingsSchema } from "@/lib/validation/schemas";
+import { settingsSchema, completeProfileSchema } from "@/lib/validation/schemas";
 
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -34,34 +34,50 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     return NextResponse.json({ user: safeUser });
   }
 
-  const merged = {
-    gender: body.gender ?? existing.gender,
+  const parsed = completeProfileSchema.safeParse({
     age: body.age ?? existing.age,
+    gender: body.gender ?? existing.gender,
     heightCm: body.heightCm ?? existing.heightCm,
     weightKg: body.weightKg ?? existing.weightKg,
+    targetWeightKg: body.targetWeightKg ?? existing.targetWeightKg,
     activityLevel: body.activityLevel ?? existing.activityLevel,
+    medicalConditions: body.medicalConditions ?? existing.medicalConditions,
     isGlp1: body.isGlp1 ?? existing.isGlp1,
-  };
+    glp1Medication: "glp1Medication" in body ? body.glp1Medication : existing.glp1Medication,
+    glp1DosageMg: "glp1DosageMg" in body ? body.glp1DosageMg : existing.glp1DosageMg,
+    dietType: body.dietType ?? existing.dietType,
+    allergies: body.allergies ?? existing.allergies,
+    cuisinePreference: body.cuisinePreference ?? existing.cuisinePreference,
+    whatsappNumbers: body.whatsappNumbers ?? existing.whatsappNumbers,
+  });
+  if (!parsed.success) {
+    return NextResponse.json({ error: "Validation failed", issues: parsed.error.flatten() }, { status: 400 });
+  }
+  const {
+    gender, age, heightCm, weightKg, targetWeightKg, activityLevel, isGlp1,
+    medicalConditions, glp1Medication, glp1DosageMg, dietType, allergies, cuisinePreference, whatsappNumbers,
+  } = parsed.data;
 
-  const profile = computeCalorieProfile(merged);
+  const profile = computeCalorieProfile({ gender, age, heightCm, weightKg, activityLevel, isGlp1 });
 
   const user = await prisma.user.update({
     where: { id },
     data: {
       ...("name" in body ? { name: body.name } : {}),
-      ...("targetWeightKg" in body ? { targetWeightKg: body.targetWeightKg } : {}),
-      ...("medicalConditions" in body ? { medicalConditions: body.medicalConditions } : {}),
-      ...("glp1Medication" in body ? { glp1Medication: body.glp1Medication } : {}),
-      ...("glp1DosageMg" in body ? { glp1DosageMg: body.glp1DosageMg } : {}),
-      ...("dietType" in body ? { dietType: body.dietType } : {}),
-      ...("allergies" in body ? { allergies: body.allergies } : {}),
-      ...("cuisinePreference" in body ? { cuisinePreference: body.cuisinePreference } : {}),
-      gender: merged.gender,
-      age: merged.age,
-      heightCm: merged.heightCm,
-      weightKg: merged.weightKg,
-      activityLevel: merged.activityLevel,
-      isGlp1: merged.isGlp1,
+      medicalConditions,
+      glp1Medication,
+      glp1DosageMg,
+      dietType,
+      allergies,
+      cuisinePreference,
+      whatsappNumbers,
+      gender,
+      age,
+      heightCm,
+      weightKg,
+      targetWeightKg,
+      activityLevel,
+      isGlp1,
       bmi: profile.bmi,
       bmr: profile.bmr,
       tdee: profile.tdee,

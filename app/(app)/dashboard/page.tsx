@@ -4,25 +4,18 @@ import { prisma } from "@/lib/prisma";
 import { bmiCategory } from "@/lib/calculations";
 import { weekStartDate } from "@/lib/utils";
 import { StatTile } from "@/components/dashboard/StatTile";
-import WeightTracker from "@/components/dashboard/WeightTracker";
-import WaterTracker from "@/components/dashboard/WaterTracker";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
+import PdfUploadForm from "@/components/settings/PdfUploadForm";
+import RecipeForm from "@/components/settings/RecipeForm";
+import GeneratePlanButton from "@/components/plan/GeneratePlanButton";
 
 export default async function DashboardPage() {
   const user = await getCurrentUser();
   if (!user) return null; // (app) layout already redirects when there's no session
 
   const weekStart = weekStartDate();
-  const [weightLogs, waterLogs, mealPlanCount] = await Promise.all([
-    prisma.weightLog.findMany({ where: { userId: user.id }, orderBy: { loggedAt: "asc" } }),
-    prisma.waterLog.findMany({
-      where: { userId: user.id, loggedAt: { gte: new Date(new Date().setUTCHours(0, 0, 0, 0)) } },
-    }),
-    prisma.mealPlan.count({ where: { userId: user.id, weekStartDate: weekStart } }),
-  ]);
-
-  const totalWaterMl = waterLogs.reduce((sum, l) => sum + l.amountMl, 0);
+  const mealPlanCount = await prisma.mealPlan.count({ where: { userId: user.id, weekStartDate: weekStart } });
 
   return (
     <div className="space-y-4">
@@ -48,15 +41,23 @@ export default async function DashboardPage() {
           sub={user.deficitKcal ? `${Math.round(user.deficitKcal)} kcal deficit` : undefined}
         />
         <StatTile label="Protein target" value={user.proteinTargetG ? `${Math.round(user.proteinTargetG)}g` : "—"} />
-        <StatTile label="Current weight" value={`${user.weightKg}kg`} sub={`Goal: ${user.targetWeightKg}kg`} />
+        <StatTile
+          label="Current weight"
+          value={user.weightKg != null ? `${user.weightKg}kg` : "—"}
+          sub={user.targetWeightKg != null ? `Goal: ${user.targetWeightKg}kg` : undefined}
+        />
       </div>
+
+      <PdfUploadForm userId={user.id} />
+      <RecipeForm userId={user.id} />
 
       {mealPlanCount === 0 ? (
         <Card className="flex flex-col items-start gap-2 bg-emerald-50">
-          <p className="text-sm font-medium text-emerald-800">You don&apos;t have a diet plan for this week yet.</p>
-          <Link href="/plan">
-            <Button>Generate my weekly plan</Button>
-          </Link>
+          <p className="text-sm font-medium text-emerald-800">
+            Ready to build your diet plan? AI will generate 7 days of meals matched to your calorie and protein
+            targets, using anything you&apos;ve uploaded or added above.
+          </p>
+          <GeneratePlanButton userId={user.id} />
         </Card>
       ) : (
         <Card className="flex items-center justify-between bg-emerald-50">
@@ -66,13 +67,6 @@ export default async function DashboardPage() {
           </Link>
         </Card>
       )}
-
-      <WeightTracker
-        userId={user.id}
-        targetWeightKg={user.targetWeightKg}
-        logs={weightLogs.map((l) => ({ id: l.id, weightKg: l.weightKg, loggedAt: l.loggedAt.toISOString() }))}
-      />
-      <WaterTracker userId={user.id} totalMl={totalWaterMl} />
     </div>
   );
 }

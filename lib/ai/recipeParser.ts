@@ -30,16 +30,16 @@ export async function parseRecipesFromText(rawText: string): Promise<StructuredR
 }
 
 /**
- * Instagram doesn't have a public unauthenticated content API, so we can't
- * scrape post captions server-side without violating ToS / needing a login.
- * We ask the user to paste the caption/recipe text instead (handled by the
- * UI), and this helper just documents the contract for a future scraper
- * integration point (e.g. a licensed 3rd-party Instagram API).
+ * Neither Instagram nor YouTube expose a public unauthenticated API for
+ * scraping post captions or video content server-side without violating ToS
+ * or needing a login. We ask the user to paste the caption/description/
+ * transcript text instead (handled by the UI), and this helper just
+ * documents the contract for a future scraper/transcript-API integration.
  */
-export async function parseRecipeFromInstagramCaption(caption: string, sourceUrl: string): Promise<StructuredRecipe[]> {
+export async function parseRecipeFromVideoCaption(caption: string, sourceUrl: string): Promise<StructuredRecipe[]> {
   return askClaudeForJSON<StructuredRecipe[]>({
     system: RECIPE_SYSTEM_PROMPT,
-    prompt: `The following caption was copied from an Instagram recipe post (${sourceUrl}). Extract structured recipe(s):\n\n"""\n${caption.slice(0, 8000)}\n"""`,
+    prompt: `The following caption/description was copied from a recipe video post (${sourceUrl}). Extract structured recipe(s):\n\n"""\n${caption.slice(0, 8000)}\n"""`,
     maxTokens: 8192,
   });
 }

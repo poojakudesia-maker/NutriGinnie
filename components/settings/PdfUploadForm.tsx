@@ -40,10 +40,15 @@ export default function PdfUploadForm({ userId }: { userId: string }) {
 
   return (
     <Card>
-      <h2 className="mb-2 text-sm font-semibold text-slate-900">Upload diet plan PDF</h2>
+      <h2 className="mb-2 text-sm font-semibold text-slate-900">Upload your diet plan (PDF or DOCX)</h2>
       <p className="mb-3 text-xs text-slate-500">We&apos;ll extract dishes, ingredients and macros with AI.</p>
       <div className="flex items-center gap-3">
-        <input ref={fileRef} type="file" accept="application/pdf" className="text-xs" />
+        <input
+          ref={fileRef}
+          type="file"
+          accept="application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,.docx"
+          className="text-xs"
+        />
         <Button variant="secondary" onClick={upload} disabled={uploading}>
           {uploading ? "Parsing with AI…" : "Upload"}
         </Button>

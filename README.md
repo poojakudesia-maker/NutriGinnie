@@ -17,17 +17,23 @@ reminders (text + voice) for the meal plan and grocery list.
 
 ```
 app/
-  (app)/                  Authenticated shell (bottom nav) — redirects to /onboarding without a session
-    dashboard/            BMI/BMR/TDEE/calorie dashboard, weight + water trackers
+  (app)/                  Authenticated shell (bottom nav) — redirects to /onboarding or
+                          /onboarding/complete-profile when there's no session / an incomplete profile
+    dashboard/            BMI/BMR/TDEE/calorie dashboard, PDF/DOCX upload, recipe/video-link input,
+                          "Generate my weekly plan"
     plan/                 Weekly plan grid
     plan/[day]/           Daily meal breakdown + "send to WhatsApp" button
     grocery/              Grocery list (prev/next day navigation)
-    settings/             WhatsApp numbers, PDF upload, recipe paste, saved recipes
-  onboarding/             Multi-section onboarding form (profile, health, food prefs, WhatsApp)
+    settings/             WhatsApp numbers, PDF/DOCX upload, recipe paste, saved recipes, log out
+  onboarding/             Email/password signup form (+ "Continue with Google") + health/food profile
+  onboarding/complete-profile/  Health/food profile step for accounts created via Google (no password)
+  login/                  Email/password login + "Continue with Google"
   api/
     users/                Create profile (+ calculation engine), fetch/update profile & settings
-    uploads/pdf/           PDF upload -> text extraction -> AI recipe structuring
-    recipes/               Paste recipe text / Instagram caption -> AI structuring
+    auth/login/, auth/logout/    Email/password session endpoints
+    auth/google/, auth/google/callback/  Google OAuth 2.0 authorization-code flow
+    uploads/pdf/           PDF or DOCX upload -> text extraction -> AI recipe structuring
+    recipes/               Paste recipe text / Instagram / YouTube link -> AI structuring
     diet-plan/             Generate + fetch the 7-day AI diet plan
     grocery/                Generate + fetch a day's aggregated grocery list
     whatsapp/send/          Manual "send now" trigger (diet plan or grocery list)
@@ -35,17 +41,19 @@ app/
     tts/voice/              Public audio endpoint Twilio fetches for the voice note
     cron/daily-diet/        8 AM job: sends today's plan to every user
     cron/grocery-reminder/  5 PM job: sends tomorrow's grocery list to every user
-    weight/, water/         Bonus trackers
+    weight/, water/         Bonus trackers (API only — not surfaced on the dashboard currently)
   manifest.ts             PWA manifest (installable)
 lib/
   calculations.ts         BMI / BMR (Mifflin-St Jeor) / TDEE / deficit / protein targets + GLP-1 rules
-  ai/                     Claude client, PDF parser, recipe parser, diet plan generator
+  ai/                     Claude client, PDF parser, DOCX parser, recipe parser, diet plan generator
   whatsapp/               Twilio client, message templates, send dispatcher
   tts/                    ElevenLabs / Google TTS client
   grocery/aggregator.ts   Dedupes + sums ingredients across a day's meals, categorized
-  validation/schemas.ts   Zod schemas (onboarding, phone numbers, recipes, etc.)
-  session.ts              Cookie-based "current user" session, set at signup/login
+  validation/schemas.ts   Zod schemas (onboarding, complete-profile, phone numbers, recipes, etc.)
+  session.ts              Cookie-based "current user" session + isProfileComplete() gate
   auth/password.ts        bcrypt password hashing/verification
+  auth/google.ts           Google OAuth 2.0 helper (auth URL, code exchange, userinfo)
+  api/errors.ts           Turns thrown errors (e.g. a missing API key) into clean JSON error responses
 prisma/schema.prisma      Users, Recipes, MealPlans, Groceries, WhatsAppLogs, WeightLogs, WaterLogs
 public/sw.js              Service worker (offline cache for diet plan / grocery list)
 scripts/scheduler.ts      node-cron worker for platforms without native cron (Railway/Render)
@@ -54,17 +62,24 @@ vercel.json               Vercel Cron schedule (8 AM & 5 PM IST)
 
 ## How the pieces fit together
 
-1. **Onboarding** (`/onboarding`) collects an email + password alongside the profile and POSTs to
-   `/api/users`, which hashes the password (bcrypt, `lib/auth/password.ts`), runs
+1. **Sign up** (`/onboarding`) collects an email + password alongside the health/food profile and
+   POSTs to `/api/users`, which hashes the password (bcrypt, `lib/auth/password.ts`), runs
    `lib/calculations.ts` to compute BMI/BMR/TDEE/calorie target/protein target (applying the GLP-1
    protocol and a safe-calorie floor), and stores everything on the `User` row. A session cookie
    (`nutriping_user_id`) is set on success. Returning users log in at `/login`
    (`/api/auth/login`), which verifies the password and sets the same cookie; `/api/auth/logout`
    (wired to the Settings screen) clears it. `passwordHash` is never included in any API response.
-2. **Settings** (`/settings`) lets the user upload a diet-plan PDF or paste a recipe/Instagram
-   caption. Both flows extract text and hand it to Claude (`lib/ai/recipeParser.ts`), which returns
-   structured `Recipe` rows (ingredients, macros, micros — AI-estimated when the source doesn't state
-   them, flagged via `aiEstimated`).
+   **"Continue with Google"** (`/api/auth/google` → `/api/auth/google/callback`) runs a standard
+   OAuth 2.0 authorization-code flow (`lib/auth/google.ts`) and creates a minimal `User` row
+   (email + name only, `authProvider: GOOGLE`, no password); the `(app)` layout then redirects to
+   **`/onboarding/complete-profile`** until the health/food fields are filled in
+   (`isProfileComplete()` in `lib/session.ts` is the gate every authenticated screen checks).
+2. **Dashboard** (`/dashboard`) is where the diet plan gets built: upload a diet-plan **PDF or
+   DOCX** (`lib/ai/pdfParser.ts` / `lib/ai/docParser.ts`), or paste a recipe/Instagram/YouTube link
+   + its caption or transcript. Both flows hand the text to Claude
+   (`lib/ai/recipeParser.ts`), which returns structured `Recipe` rows (ingredients, macros, micros —
+   AI-estimated when the source doesn't state them, flagged via `aiEstimated`). Everything saved here
+   is passed to the diet-plan generator as reusable recipes (see #3).
 3. **Weekly Plan** (`/plan`) calls `/api/diet-plan/generate`, which sends the user's targets,
    restrictions, and saved recipes to Claude (`lib/ai/dietPlanGenerator.ts`) and persists 7 `MealPlan`
    rows (one per day, keyed by `weekStartDate` + `dayIndex`).
@@ -112,8 +127,22 @@ Visit `http://localhost:3000` — you'll land on `/onboarding` until a profile e
 
 ### 5. Enable AI features
 
-Set `ANTHROPIC_API_KEY` (get one at console.anthropic.com). Without it, PDF upload, recipe parsing,
-and diet plan generation return a clear error instead of silently failing.
+Set `ANTHROPIC_API_KEY` (get one at console.anthropic.com). Without it, PDF/DOCX upload, recipe
+parsing, and diet plan generation return a clear JSON error instead of crashing or hanging.
+
+### 6. Enable Google Sign-In (optional)
+
+1. In [Google Cloud Console](https://console.cloud.google.com/apis/credentials), create an **OAuth
+   2.0 Client ID** of type "Web application".
+2. Add an **Authorized redirect URI**: `<APP_URL>/api/auth/google/callback` (e.g.
+   `http://localhost:3000/api/auth/google/callback` for local dev).
+3. Copy the Client ID/Secret into `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET`.
+4. Restart the dev server. The "Continue with Google" button on `/login` and `/onboarding` now
+   works; without these env vars it redirects back with a friendly "not set up yet" message instead
+   of erroring.
+
+A brand-new Google sign-in only has an email and name — it's routed to
+`/onboarding/complete-profile` to fill in the rest before the dashboard unlocks.
 
 ## WhatsApp integration steps (Twilio)
 
@@ -163,7 +192,9 @@ message template in Meta Business Manager, and swap the calls in `lib/whatsapp/d
 
 ## Bonus features included
 
-- Weight tracking graph (sparkline) on the dashboard, logged from the same screen.
-- Water intake tracker with a daily goal bar.
+- Weight tracking (`/api/weight`) and water intake tracking (`/api/water`) — implemented as APIs +
+  components (`components/dashboard/WeightTracker.tsx`, `WaterTracker.tsx`) but not currently wired
+  into a screen, since the dashboard was repurposed as the "build your plan" hub (upload/recipes/
+  generate). Drop the components back into any page to resurface them.
 - Offline-cached diet plan / grocery list via the service worker (`public/sw.js`), so the app remains
   usable with spotty connectivity once a plan has been loaded once.
