@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { onboardingSchema } from "@/lib/validation/schemas";
 import { computeCalorieProfile } from "@/lib/calculations";
 import { SESSION_COOKIE } from "@/lib/session";
+import { hashPassword } from "@/lib/auth/password";
 
 /** POST /api/users — onboarding submission. Creates the user profile and calorie targets. */
 export async function POST(req: NextRequest) {
@@ -17,6 +18,13 @@ export async function POST(req: NextRequest) {
   }
   const input = parsed.data;
 
+  const existing = await prisma.user.findUnique({ where: { email: input.email } });
+  if (existing) {
+    return NextResponse.json({ error: "An account with this email already exists. Try logging in instead." }, { status: 409 });
+  }
+
+  const passwordHash = await hashPassword(input.password);
+
   const profile = computeCalorieProfile({
     gender: input.gender,
     age: input.age,
@@ -28,6 +36,8 @@ export async function POST(req: NextRequest) {
 
   const user = await prisma.user.create({
     data: {
+      email: input.email,
+      passwordHash,
       name: input.name,
       age: input.age,
       gender: input.gender,
@@ -52,7 +62,8 @@ export async function POST(req: NextRequest) {
     },
   });
 
-  const res = NextResponse.json({ user, calculations: profile }, { status: 201 });
+  const { passwordHash: _passwordHash, ...safeUser } = user;
+  const res = NextResponse.json({ user: safeUser, calculations: profile }, { status: 201 });
   res.cookies.set(SESSION_COOKIE, user.id, {
     httpOnly: true,
     sameSite: "lax",

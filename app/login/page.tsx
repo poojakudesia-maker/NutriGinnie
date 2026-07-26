@@ -1,23 +1,23 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentUserId } from "@/lib/session";
-import OnboardingForm from "@/components/onboarding/OnboardingForm";
+import LoginForm from "@/components/auth/LoginForm";
 
-export default async function OnboardingPage() {
+export default async function LoginPage() {
   const userId = await getCurrentUserId();
   if (userId) redirect("/dashboard");
 
   return (
-    <div className="mx-auto w-full max-w-2xl flex-1 px-4 py-6">
+    <div className="mx-auto w-full max-w-sm flex-1 px-4 py-10">
       <div className="mb-6 text-center">
         <h1 className="text-2xl font-bold text-emerald-700">NutriPing</h1>
-        <p className="text-sm text-slate-500">Tell us about yourself to get your personalized diet plan.</p>
+        <p className="text-sm text-slate-500">Log in to your account</p>
       </div>
-      <OnboardingForm />
+      <LoginForm />
       <p className="mt-4 text-center text-sm text-slate-500">
-        Already have an account?{" "}
-        <Link href="/login" className="font-medium text-emerald-700">
-          Log in
+        New here?{" "}
+        <Link href="/onboarding" className="font-medium text-emerald-700">
+          Create a profile
         </Link>
       </p>
     </div>

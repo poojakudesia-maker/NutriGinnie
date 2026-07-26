@@ -80,6 +80,21 @@ export default function OnboardingForm() {
             <input className={inputClass} {...register("name")} />
             {errors.name && <p className={errorClass}>{errors.name.message}</p>}
           </div>
+          <div className="col-span-2">
+            <label className={labelClass}>Email</label>
+            <input type="email" className={inputClass} {...register("email")} />
+            {errors.email && <p className={errorClass}>{errors.email.message}</p>}
+          </div>
+          <div>
+            <label className={labelClass}>Password</label>
+            <input type="password" className={inputClass} {...register("password")} />
+            {errors.password && <p className={errorClass}>{errors.password.message}</p>}
+          </div>
+          <div>
+            <label className={labelClass}>Confirm password</label>
+            <input type="password" className={inputClass} {...register("confirmPassword")} />
+            {errors.confirmPassword && <p className={errorClass}>{errors.confirmPassword.message}</p>}
+          </div>
           <div>
             <label className={labelClass}>Age</label>
             <input type="number" className={inputClass} {...register("age")} />

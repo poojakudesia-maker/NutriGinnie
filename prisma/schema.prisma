@@ -60,6 +60,10 @@ enum WhatsAppStatus {
 model User {
   id String @id @default(cuid())
 
+  // Login credentials
+  email        String @unique
+  passwordHash String
+
   // Basic profile
   name           String
   age            Int

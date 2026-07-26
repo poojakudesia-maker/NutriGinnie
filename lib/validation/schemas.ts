@@ -6,8 +6,22 @@ export const phoneSchema = z
   .trim()
   .regex(/^\+[1-9]\d{7,14}$/, "Phone number must include a country code, e.g. +919876543210");
 
+/** Drops blank entries before validation so an unfilled optional phone field never blocks submit. */
+const optionalPhoneList = z.preprocess(
+  (val) => (Array.isArray(val) ? val.filter((v) => typeof v === "string" && v.trim().length > 0) : val),
+  z.array(phoneSchema).max(2, "You can add up to 2 WhatsApp numbers")
+);
+
+export const passwordSchema = z
+  .string()
+  .min(8, "Password must be at least 8 characters")
+  .max(72, "Password must be under 72 characters");
+
 export const onboardingSchema = z.object({
   name: z.string().trim().min(1, "Name is required").max(100),
+  email: z.string().trim().toLowerCase().email("Enter a valid email address"),
+  password: passwordSchema,
+  confirmPassword: z.string(),
   age: z.coerce.number().int().min(13, "Age must be at least 13").max(100, "Age must be under 100"),
   gender: z.enum(["MALE", "FEMALE"]),
   heightCm: z.coerce.number().min(100, "Height must be at least 100cm").max(250),
@@ -24,7 +38,7 @@ export const onboardingSchema = z.object({
   allergies: z.array(z.string()).default([]),
   cuisinePreference: z.array(z.string()).default(["Indian"]),
 
-  whatsappNumbers: z.array(phoneSchema).max(2, "You can add up to 2 WhatsApp numbers").default([]),
+  whatsappNumbers: optionalPhoneList.default([]),
 })
   .refine((data) => Math.abs(data.targetWeightKg - data.weightKg) <= 60, {
     message: "Target weight looks unrealistic relative to current weight.",
@@ -33,12 +47,21 @@ export const onboardingSchema = z.object({
   .refine((data) => !data.isGlp1 || (data.glp1Medication && data.glp1Medication.length > 0), {
     message: "Please specify the GLP-1 medication name",
     path: ["glp1Medication"],
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: "Passwords do not match",
+    path: ["confirmPassword"],
   });
 
 export type OnboardingInput = z.infer<typeof onboardingSchema>;
 
 export const settingsSchema = z.object({
-  whatsappNumbers: z.array(phoneSchema).max(2, "You can add up to 2 WhatsApp numbers"),
+  whatsappNumbers: optionalPhoneList,
+});
+
+export const loginSchema = z.object({
+  email: z.string().trim().toLowerCase().email("Enter a valid email address"),
+  password: z.string().min(1, "Enter your password"),
 });
 
 export const rawRecipeSchema = z.object({

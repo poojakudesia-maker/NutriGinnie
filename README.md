@@ -44,7 +44,8 @@ lib/
   tts/                    ElevenLabs / Google TTS client
   grocery/aggregator.ts   Dedupes + sums ingredients across a day's meals, categorized
   validation/schemas.ts   Zod schemas (onboarding, phone numbers, recipes, etc.)
-  session.ts              Cookie-based "current user" (no separate login flow)
+  session.ts              Cookie-based "current user" session, set at signup/login
+  auth/password.ts        bcrypt password hashing/verification
 prisma/schema.prisma      Users, Recipes, MealPlans, Groceries, WhatsAppLogs, WeightLogs, WaterLogs
 public/sw.js              Service worker (offline cache for diet plan / grocery list)
 scripts/scheduler.ts      node-cron worker for platforms without native cron (Railway/Render)
@@ -53,11 +54,13 @@ vercel.json               Vercel Cron schedule (8 AM & 5 PM IST)
 
 ## How the pieces fit together
 
-1. **Onboarding** (`/onboarding`) collects the profile and POSTs to `/api/users`, which runs
+1. **Onboarding** (`/onboarding`) collects an email + password alongside the profile and POSTs to
+   `/api/users`, which hashes the password (bcrypt, `lib/auth/password.ts`), runs
    `lib/calculations.ts` to compute BMI/BMR/TDEE/calorie target/protein target (applying the GLP-1
-   protocol and a safe-calorie floor) and stores everything on the `User` row. A session cookie
-   (`nutriping_user_id`) is set — there's no separate login system, matching the single-user-per-device
-   nature of the WhatsApp reminders.
+   protocol and a safe-calorie floor), and stores everything on the `User` row. A session cookie
+   (`nutriping_user_id`) is set on success. Returning users log in at `/login`
+   (`/api/auth/login`), which verifies the password and sets the same cookie; `/api/auth/logout`
+   (wired to the Settings screen) clears it. `passwordHash` is never included in any API response.
 2. **Settings** (`/settings`) lets the user upload a diet-plan PDF or paste a recipe/Instagram
    caption. Both flows extract text and hand it to Claude (`lib/ai/recipeParser.ts`), which returns
    structured `Recipe` rows (ingredients, macros, micros — AI-estimated when the source doesn't state

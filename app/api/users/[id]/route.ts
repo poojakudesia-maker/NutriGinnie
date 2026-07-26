@@ -7,7 +7,8 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
   const { id } = await params;
   const user = await prisma.user.findUnique({ where: { id } });
   if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 });
-  return NextResponse.json({ user });
+  const { passwordHash: _passwordHash, ...safeUser } = user;
+  return NextResponse.json({ user: safeUser });
 }
 
 /**
@@ -29,7 +30,8 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       return NextResponse.json({ error: "Validation failed", issues: parsed.error.flatten() }, { status: 400 });
     }
     const user = await prisma.user.update({ where: { id }, data: { whatsappNumbers: parsed.data.whatsappNumbers } });
-    return NextResponse.json({ user });
+    const { passwordHash: _passwordHash, ...safeUser } = user;
+    return NextResponse.json({ user: safeUser });
   }
 
   const merged = {
@@ -69,5 +71,6 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     },
   });
 
-  return NextResponse.json({ user, calculations: profile });
+  const { passwordHash: _passwordHash, ...safeUser } = user;
+  return NextResponse.json({ user: safeUser, calculations: profile });
 }

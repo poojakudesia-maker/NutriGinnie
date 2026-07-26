@@ -4,6 +4,7 @@ import { Card } from "@/components/ui/Card";
 import WhatsAppSettingsForm from "@/components/settings/WhatsAppSettingsForm";
 import PdfUploadForm from "@/components/settings/PdfUploadForm";
 import RecipeForm from "@/components/settings/RecipeForm";
+import LogoutButton from "@/components/settings/LogoutButton";
 
 export default async function SettingsPage() {
   const user = await getCurrentUser();
@@ -39,6 +40,8 @@ export default async function SettingsPage() {
           </ul>
         )}
       </Card>
+
+      <LogoutButton />
 
       <p className="text-center text-xs text-slate-400">NutriPing v1.0 · Made for consistent, sustainable progress</p>
     </div>
