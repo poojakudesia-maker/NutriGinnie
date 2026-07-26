@@ -3,5 +3,5 @@ import { getCurrentUserId } from "@/lib/session";
 
 export default async function Home() {
   const userId = await getCurrentUserId();
-  redirect(userId ? "/dashboard" : "/onboarding");
+  redirect(userId ? "/dashboard" : "/login");
 }

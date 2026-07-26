@@ -4,7 +4,7 @@ import BottomNav from "@/components/BottomNav";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const user = await getCurrentUser();
-  if (!user) redirect("/onboarding");
+  if (!user) redirect("/login");
   if (!isProfileComplete(user)) redirect("/onboarding/complete-profile");
 
   return (
