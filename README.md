@@ -75,11 +75,15 @@ vercel.json               Vercel Cron schedule (8 AM & 5 PM IST)
    **`/onboarding/complete-profile`** until the health/food fields are filled in
    (`isProfileComplete()` in `lib/session.ts` is the gate every authenticated screen checks).
 2. **Dashboard** (`/dashboard`) is where the diet plan gets built: upload a diet-plan **PDF or
-   DOCX** (`lib/ai/pdfParser.ts` / `lib/ai/docParser.ts`), or paste a recipe/Instagram/YouTube link
-   + its caption or transcript. Both flows hand the text to Claude
-   (`lib/ai/recipeParser.ts`), which returns structured `Recipe` rows (ingredients, macros, micros —
-   AI-estimated when the source doesn't state them, flagged via `aiEstimated`). Everything saved here
-   is passed to the diet-plan generator as reusable recipes (see #3).
+   DOCX** (`lib/ai/pdfParser.ts` / `lib/ai/docParser.ts`), or paste an Instagram/YouTube link. For
+   **YouTube**, `lib/ai/youtubeTranscript.ts` auto-fetches the video's caption track (no API key —
+   same public endpoint the YouTube player itself uses) so pasting text is optional; if the video has
+   no captions, the API returns a clear error asking for pasted text instead. **Instagram** has no
+   public unauthenticated API for this, so its caption/description must always be pasted. Either way,
+   the resulting text is handed to Claude (`lib/ai/recipeParser.ts`), which returns structured
+   `Recipe` rows (ingredients, macros, micros — AI-estimated when the source doesn't state them,
+   flagged via `aiEstimated`). Everything saved here is passed to the diet-plan generator as reusable
+   recipes (see #3).
 3. **Weekly Plan** (`/plan`) calls `/api/diet-plan/generate`, which sends the user's targets,
    restrictions, and saved recipes to Claude (`lib/ai/dietPlanGenerator.ts`) and persists 7 `MealPlan`
    rows (one per day, keyed by `weekStartDate` + `dayIndex`).

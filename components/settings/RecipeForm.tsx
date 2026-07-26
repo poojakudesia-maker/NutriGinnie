@@ -12,9 +12,15 @@ export default function RecipeForm({ userId }: { userId: string }) {
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
 
+  const isYouTube = /youtube\.com|youtu\.be/.test(videoUrl);
+
   const submit = async () => {
-    if (!text.trim()) {
-      setMessage("Paste the recipe text or the video's caption/description.");
+    if (!text.trim() && !videoUrl.trim()) {
+      setMessage("Paste a recipe/video link, or the recipe text itself.");
+      return;
+    }
+    if (!text.trim() && videoUrl.trim() && !isYouTube) {
+      setMessage("Paste the caption/recipe text too — we can only auto-fetch YouTube transcripts.");
       return;
     }
     setSaving(true);
@@ -45,8 +51,9 @@ export default function RecipeForm({ userId }: { userId: string }) {
     <Card>
       <h2 className="mb-2 text-sm font-semibold text-slate-900">Add a recipe</h2>
       <p className="mb-3 text-xs text-slate-500">
-        Paste an Instagram or YouTube link + its caption/description, or just paste a raw recipe. AI will structure
-        it into ingredients and macros — this becomes part of your diet plan.
+        Paste a YouTube link and we&apos;ll auto-fetch its transcript. For Instagram (or any raw
+        recipe), paste the caption/text too. AI structures it into ingredients and macros — this
+        becomes part of your diet plan.
       </p>
       <input
         className="mb-2 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
@@ -56,7 +63,7 @@ export default function RecipeForm({ userId }: { userId: string }) {
       />
       <textarea
         className="mb-2 h-28 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
-        placeholder="Paste the recipe text / caption here..."
+        placeholder={isYouTube ? "Optional — leave blank to auto-fetch the transcript" : "Paste the recipe text / caption here..."}
         value={text}
         onChange={(e) => setText(e.target.value)}
       />
