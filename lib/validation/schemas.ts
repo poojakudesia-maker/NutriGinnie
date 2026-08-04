@@ -95,11 +95,15 @@ export const loginSchema = z.object({
   password: z.string().min(1, "Enter your password"),
 });
 
+/** Treats a blank/whitespace-only string as "not provided" instead of failing the min-length check. */
+const optionalNonEmptyString = (schema: z.ZodString) =>
+  z.preprocess((val) => (typeof val === "string" && val.trim().length === 0 ? undefined : val), schema.optional());
+
 export const rawRecipeSchema = z.object({
   userId: z.string().min(1),
-  name: z.string().trim().min(1).max(200).optional(),
-  text: z.string().trim().min(10, "Paste the full recipe text").max(20000).optional(),
-  videoUrl: z.string().url().optional(), // Instagram or YouTube recipe link
+  name: optionalNonEmptyString(z.string().trim().min(1).max(200)),
+  text: optionalNonEmptyString(z.string().trim().min(10, "Paste the full recipe text").max(20000)),
+  videoUrl: optionalNonEmptyString(z.string().url()),
 }).refine((data) => !!data.text || !!data.videoUrl, {
   message: "Provide either recipe text or a video link",
   path: ["text"],

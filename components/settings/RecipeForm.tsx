@@ -29,11 +29,12 @@ export default function RecipeForm({ userId }: { userId: string }) {
       const res = await fetch("/api/recipes", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId, text, videoUrl: videoUrl || undefined }),
+        body: JSON.stringify({ userId, text: text.trim() || undefined, videoUrl: videoUrl.trim() || undefined }),
       });
       const json = await res.json();
       if (!res.ok) {
-        setMessage(json.error ?? "Could not process this recipe.");
+        const firstIssue = json.issues?.fieldErrors && Object.values(json.issues.fieldErrors).flat()[0];
+        setMessage((firstIssue as string) ?? json.error ?? "Could not process this recipe.");
         return;
       }
       setMessage(`Saved ${json.recipes.length} recipe(s).`);
