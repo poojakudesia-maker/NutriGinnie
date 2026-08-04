@@ -55,19 +55,49 @@ interface Json3Event {
   segs?: { utf8?: string }[];
 }
 
-function parseJson3Transcript(json: string): string {
-  const data = JSON.parse(json) as { events?: Json3Event[] };
-  const lines = (data.events ?? [])
-    .flatMap((event) => event.segs ?? [])
-    .map((seg) => seg.utf8 ?? "")
-    .join("");
-  return lines.replace(/\n+/g, " ").replace(/\s+/g, " ").trim();
+/** Returns null (rather than throwing) so the caller can fall back to the XML format. */
+function parseJson3Transcript(json: string): string | null {
+  if (!json.trim()) return null;
+  try {
+    const data = JSON.parse(json) as { events?: Json3Event[] };
+    const lines = (data.events ?? [])
+      .flatMap((event) => event.segs ?? [])
+      .map((seg) => seg.utf8 ?? "")
+      .join("");
+    return lines.replace(/\n+/g, " ").replace(/\s+/g, " ").trim() || null;
+  } catch {
+    return null;
+  }
+}
+
+/** YouTube's default (no &fmt=) caption format: `<text ...>escaped html</text>` per line. */
+function parseXmlTranscript(xml: string): string | null {
+  if (!xml.trim()) return null;
+  const matches = [...xml.matchAll(/<text[^>]*>([\s\S]*?)<\/text>/g)];
+  if (matches.length === 0) return null;
+  const decodeEntities = (s: string) =>
+    s
+      .replace(/&amp;/g, "&")
+      .replace(/&#39;/g, "'")
+      .replace(/&quot;/g, '"')
+      .replace(/&lt;/g, "<")
+      .replace(/&gt;/g, ">");
+  return matches
+    .map((m) => decodeEntities(m[1]))
+    .join(" ")
+    .replace(/\s+/g, " ")
+    .trim() || null;
+}
+
+function withQueryParam(url: string, param: string): string {
+  return `${url}${url.includes("?") ? "&" : "?"}${param}`;
 }
 
 /**
  * Returns the video's transcript as plain text, or throws if no captions
  * are available. Prefers an English track, falling back to the first
- * available language.
+ * available language. Tries the JSON3 caption format first, then falls back
+ * to YouTube's default XML format if JSON3 comes back empty/unparseable.
  */
 export async function fetchYouTubeTranscript(url: string): Promise<string> {
   const videoId = extractVideoId(url);
@@ -80,16 +110,21 @@ export async function fetchYouTubeTranscript(url: string): Promise<string> {
     throw new Error("This video has no captions/transcript available to fetch automatically.");
   }
 
-  const track =
-    tracks.find((t) => t.languageCode?.startsWith("en")) ?? tracks[0];
+  const track = tracks.find((t) => t.languageCode?.startsWith("en")) ?? tracks[0];
 
-  const transcriptRes = await fetch(`${track.baseUrl}&fmt=json3`);
-  if (!transcriptRes.ok) {
-    throw new Error(`Could not download the caption track (${transcriptRes.status}).`);
+  const json3Res = await fetch(withQueryParam(track.baseUrl, "fmt=json3"));
+  if (json3Res.ok) {
+    const transcript = parseJson3Transcript(await json3Res.text());
+    if (transcript) return transcript;
   }
-  const transcript = parseJson3Transcript(await transcriptRes.text());
-  if (!transcript) {
+
+  const xmlRes = await fetch(track.baseUrl);
+  if (!xmlRes.ok) {
+    throw new Error(`Could not download the caption track (${xmlRes.status}).`);
+  }
+  const xmlTranscript = parseXmlTranscript(await xmlRes.text());
+  if (!xmlTranscript) {
     throw new Error("The caption track was empty.");
   }
-  return transcript;
+  return xmlTranscript;
 }
