@@ -3,9 +3,9 @@
  * (Vercel Cron) isn't available — e.g. Railway or Render running the app as
  * a long-lived Node process. Run with `npm run worker`.
  *
- * Calls the same /api/cron/* route handlers the Vercel cron config uses, so
- * there's exactly one implementation of "send today's diet plan" / "send
- * tomorrow's grocery list" regardless of which platform triggers it.
+ * Calls the same /api/cron/* route handler the Vercel cron config uses, so
+ * there's exactly one implementation of "send tomorrow's diet plan +
+ * grocery list" regardless of which platform triggers it.
  */
 import cron from "node-cron";
 
@@ -29,10 +29,7 @@ async function trigger(path: string) {
   }
 }
 
-// 8:00 AM IST daily diet plan (IST = UTC+5:30 -> 02:30 UTC)
-cron.schedule("30 2 * * *", () => trigger("/api/cron/daily-diet"), { timezone: "UTC" });
+// 7:00 PM IST nightly send: tomorrow's diet plan + grocery list combined (IST = UTC+5:30 -> 13:30 UTC)
+cron.schedule("30 13 * * *", () => trigger("/api/cron/nightly-plan"), { timezone: "UTC" });
 
-// 5:00 PM IST grocery reminder for the next day (11:30 UTC)
-cron.schedule("30 11 * * *", () => trigger("/api/cron/grocery-reminder"), { timezone: "UTC" });
-
-console.log("NutriPing scheduler running: daily-diet @ 08:00 IST, grocery-reminder @ 17:00 IST.");
+console.log("NutriPing scheduler running: nightly-plan @ 19:00 IST (diet + groceries for the next day).");

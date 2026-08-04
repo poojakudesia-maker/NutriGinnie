@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { isAuthorizedCronRequest } from "@/lib/cron/auth";
-import { sendGroceryListToUser } from "@/lib/whatsapp/dispatch";
+import { sendNightlyPlanToUser } from "@/lib/whatsapp/dispatch";
 import { buildGroceryListForDay } from "@/lib/grocery/aggregator";
 import { weekStartDate, dayIndexFromDate } from "@/lib/utils";
 import type { DayPlan } from "@/lib/ai/types";
@@ -10,8 +10,10 @@ import type { DayPlan } from "@/lib/ai/types";
 export const maxDuration = 60;
 
 /**
- * GET /api/cron/grocery-reminder — runs every day at 5 PM (see vercel.json).
- * Sends tomorrow's aggregated grocery list to all users with WhatsApp numbers configured.
+ * GET /api/cron/nightly-plan — runs every day at 7 PM IST (see vercel.json).
+ * Sends ONE combined WhatsApp message (diet plan + grocery list) plus the
+ * diet-plan voice note, for the NEXT day, to every user with a WhatsApp
+ * number configured. E.g. the 7 PM send on Aug 4 covers Aug 5's plan.
  */
 export async function GET(req: NextRequest) {
   if (!isAuthorizedCronRequest(req)) {
@@ -54,7 +56,7 @@ export async function GET(req: NextRequest) {
       create: { userId: user.id, forDate: tomorrow, items: items as unknown as Prisma.InputJsonValue },
     });
 
-    await sendGroceryListToUser(user, mealPlan.dayLabel, items);
+    await sendNightlyPlanToUser(user, dayPlan, items);
     sent++;
   }
 

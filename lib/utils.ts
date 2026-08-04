@@ -16,6 +16,10 @@ export function weekStartDate(date: Date = new Date()): Date {
 export const DAY_LABELS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 
 export function dayIndexFromDate(date: Date, weekStart: Date): number {
-  const diffMs = date.getTime() - weekStart.getTime();
+  // Normalize to UTC midnight first: callers often pass a Date that still carries the current
+  // time-of-day (e.g. `new Date()` plus a day added), which would otherwise skew the rounded
+  // day-diff whenever "now" is past noon UTC.
+  const normalized = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
+  const diffMs = normalized.getTime() - weekStart.getTime();
   return Math.max(0, Math.min(6, Math.round(diffMs / 86_400_000)));
 }

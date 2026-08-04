@@ -39,8 +39,7 @@ app/
     whatsapp/send/          Manual "send now" trigger (diet plan or grocery list)
     whatsapp/webhook/       Twilio delivery-status callback
     tts/voice/              Public audio endpoint Twilio fetches for the voice note
-    cron/daily-diet/        8 AM job: sends today's plan to every user
-    cron/grocery-reminder/  5 PM job: sends tomorrow's grocery list to every user
+    cron/nightly-plan/      7 PM IST job: sends tomorrow's diet plan + grocery list (combined) to every user
     weight/, water/         Bonus trackers (API only — not surfaced on the dashboard currently)
   manifest.ts             PWA manifest (installable)
 lib/
@@ -57,7 +56,7 @@ lib/
 prisma/schema.prisma      Users, Recipes, MealPlans, Groceries, WhatsAppLogs, WeightLogs, WaterLogs
 public/sw.js              Service worker (offline cache for diet plan / grocery list)
 scripts/scheduler.ts      node-cron worker for platforms without native cron (Railway/Render)
-vercel.json               Vercel Cron schedule (8 AM & 5 PM IST)
+vercel.json               Vercel Cron schedule (7 PM IST)
 ```
 
 ## How the pieces fit together
@@ -86,13 +85,18 @@ vercel.json               Vercel Cron schedule (8 AM & 5 PM IST)
    recipes (see #3).
 3. **Weekly Plan** (`/plan`) calls `/api/diet-plan/generate`, which sends the user's targets,
    restrictions, and saved recipes to Claude (`lib/ai/dietPlanGenerator.ts`) and persists 7 `MealPlan`
-   rows (one per day, keyed by `weekStartDate` + `dayIndex`).
+   rows (one per day, keyed by `weekStartDate` + `dayIndex`). If the user has any saved recipes
+   (from an uploaded PDF/DOCX or a pasted Instagram/YouTube link), the prompt requires the plan to be
+   built primarily from those — rotating through all of them — rather than generic AI-invented
+   dishes; new dishes only fill gaps the user's own recipes can't cover.
 4. **Grocery List** (`/grocery`) aggregates a single day's ingredients (`lib/grocery/aggregator.ts`) —
    dedup + sum by name/unit, categorized (produce/dairy/grains/protein/spices/other).
 5. **WhatsApp**: `lib/whatsapp/dispatch.ts` sends the formatted text (`lib/whatsapp/templates.ts`) via
-   Twilio, plus a voice note whose media URL points at `/api/tts/voice` (generated on-demand from the
-   same day's plan). The cron routes (`/api/cron/daily-diet` at 8 AM, `/api/cron/grocery-reminder` at
-   5 PM) run this for every user; the UI's "Send now" button runs the same code path manually.
+   Twilio, plus a voice note whose media URL points at `/api/tts/voice` (generated on-demand). A single
+   nightly cron job (`/api/cron/nightly-plan`, 7 PM IST) sends the **next day's** diet plan and
+   grocery list combined into one WhatsApp message — the message sent at 7 PM on Aug 4 covers Aug 5.
+   The UI's "Send now" buttons (on a daily plan page / the grocery page) run the diet-only or
+   grocery-only code path manually, for testing.
 
 ## Setup
 
@@ -159,7 +163,7 @@ A brand-new Google sign-in only has an email and name — it's routed to
 5. Each user must send the sandbox's join code (e.g. `join <word-pair>`) once from WhatsApp before
    Twilio is allowed to message them — a sandbox-only requirement, not needed on a production sender.
 6. Add each user's number (with country code) from the app's Settings screen. Test with
-   "Send now" on a daily plan page before relying on the 8 AM / 5 PM cron jobs.
+   "Send now" on a daily plan page before relying on the 7 PM nightly cron job.
 
 **Switching to Meta's WhatsApp Cloud API instead:** `lib/whatsapp/client.ts` already includes
 `sendMetaCloudTemplate`. Set `META_WHATSAPP_TOKEN` / `META_PHONE_NUMBER_ID`, create an approved
@@ -167,11 +171,12 @@ message template in Meta Business Manager, and swap the calls in `lib/whatsapp/d
 
 ## Scheduler
 
-- **Vercel:** `vercel.json` already declares the two cron jobs. Set `CRON_SECRET` in your Vercel
-  project env vars — Vercel automatically sends it as `Authorization: Bearer <CRON_SECRET>`, which
-  `lib/cron/auth.ts` verifies.
+- **Vercel:** `vercel.json` already declares the nightly cron job (7 PM IST / 13:30 UTC). Set
+  `CRON_SECRET` in your Vercel project env vars — Vercel automatically sends it as
+  `Authorization: Bearer <CRON_SECRET>`, which `lib/cron/auth.ts` verifies.
 - **Railway / Render (no native cron):** run `npm run worker` as a second service/process. It hits
-  the same `/api/cron/*` routes on an internal schedule using `node-cron`, so behavior is identical.
+  the same `/api/cron/nightly-plan` route on an internal schedule using `node-cron`, so behavior is
+  identical.
 
 ## Deployment
 

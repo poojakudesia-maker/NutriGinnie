@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { sendWhatsAppText, sendWhatsAppVoiceNote } from "./client";
-import { formatDietPlanMessage, formatGroceryMessage } from "./templates";
+import { formatDietPlanMessage, formatGroceryMessage, formatDietAndGroceryMessage } from "./templates";
 import type { DayPlan, GroceryItem } from "@/lib/ai/types";
 import type { User } from "@prisma/client";
 
@@ -32,6 +32,25 @@ export async function sendGroceryListToUser(user: User, forDayLabel: string, ite
   const text = formatGroceryMessage(user.name, forDayLabel, items);
   for (const phoneNumber of user.whatsappNumbers) {
     await logAndSend(user.id, phoneNumber, "GROCERY_TEXT", text, () => sendWhatsAppText(phoneNumber, text));
+  }
+}
+
+/**
+ * The nightly 7 PM send: one combined message with tomorrow's diet plan AND
+ * grocery list, plus the diet-plan voice note. This is what
+ * /api/cron/nightly-plan calls for every user.
+ */
+export async function sendNightlyPlanToUser(user: User, day: DayPlan, groceryItems: GroceryItem[]): Promise<void> {
+  if (user.whatsappNumbers.length === 0) return;
+
+  const text = formatDietAndGroceryMessage(user.name, day, groceryItems);
+  const voiceUrl = `${getAppUrl()}/api/tts/voice?userId=${user.id}&dayIndex=${day.dayIndex}`;
+
+  for (const phoneNumber of user.whatsappNumbers) {
+    await logAndSend(user.id, phoneNumber, "DIET_TEXT", text, () => sendWhatsAppText(phoneNumber, text));
+    await logAndSend(user.id, phoneNumber, "DIET_VOICE", "[voice note]", () =>
+      sendWhatsAppVoiceNote(phoneNumber, voiceUrl, "🎧 Tomorrow's diet plan, in audio")
+    );
   }
 }
 

@@ -35,6 +35,45 @@ That's about ${fmt(day.totalCalories)} calories and ${fmt(day.totalProteinG)} gr
 Have a great day, and stay consistent — you've got this!`;
 }
 
+/**
+ * Combined diet-plan + grocery-list message, sent at 7 PM the evening
+ * before (e.g. sent Aug 4 7 PM covers Aug 5's diet + groceries). This is
+ * the single nightly message — see lib/whatsapp/dispatch.ts sendNightlyPlanToUser.
+ */
+export function formatDietAndGroceryMessage(userName: string, day: DayPlan, groceryItems: GroceryItem[]): string {
+  const { meals } = day;
+
+  const dietLines = [
+    `Hi ${userName}! 🌙 Here's tomorrow's plan — *${day.dayLabel}*:`,
+    ``,
+    `🥣 *Breakfast*: ${meals.breakfast.name} (${fmt(meals.breakfast.calories)} kcal, ${fmt(meals.breakfast.proteinG)}g protein)`,
+    `🍎 *Mid-morning snack*: ${meals.snack1.name} (${fmt(meals.snack1.calories)} kcal)`,
+    `🍛 *Lunch*: ${meals.lunch.name} (${fmt(meals.lunch.calories)} kcal, ${fmt(meals.lunch.proteinG)}g protein)`,
+    `🥤 *Evening snack*: ${meals.snack2.name} (${fmt(meals.snack2.calories)} kcal)`,
+    `🍲 *Dinner*: ${meals.dinner.name} (${fmt(meals.dinner.calories)} kcal, ${fmt(meals.dinner.proteinG)}g protein)`,
+    ``,
+    `📊 Total: *${fmt(day.totalCalories)} kcal* | Protein: *${fmt(day.totalProteinG)}g* | Carbs: ${fmt(day.totalCarbsG)}g | Fat: ${fmt(day.totalFatG)}g`,
+  ];
+
+  const byCategory = new Map<string, GroceryItem[]>();
+  for (const item of groceryItems) {
+    const list = byCategory.get(item.category) ?? [];
+    list.push(item);
+    byCategory.set(item.category, list);
+  }
+
+  const groceryLines = [`🛒 *Grocery list for tomorrow*`, ``];
+  for (const [category, categoryItems] of byCategory) {
+    groceryLines.push(`_${capitalize(category)}_`);
+    for (const item of categoryItems) {
+      groceryLines.push(`• ${item.name} — ${formatQty(item.quantity)}${item.unit}`);
+    }
+    groceryLines.push(``);
+  }
+
+  return [...dietLines, ``, `━━━━━━━━━━━━━━━`, ``, ...groceryLines, `Get these ready tonight — stay consistent! 💪`].join("\n");
+}
+
 /** Grocery list reminder, sent the evening before (5 PM) for the next day's meals. */
 export function formatGroceryMessage(userName: string, forDayLabel: string, items: GroceryItem[]): string {
   const byCategory = new Map<string, GroceryItem[]>();
