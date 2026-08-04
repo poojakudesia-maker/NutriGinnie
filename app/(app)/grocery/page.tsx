@@ -60,13 +60,13 @@ export default async function GroceryPage({ searchParams }: { searchParams: Prom
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h1 className="text-xl font-bold text-slate-900">Grocery list</h1>
-        <div className="flex gap-2 text-sm">
-          <Link href={`/grocery?date=${prevIso}`} className="text-emerald-700">
+        <h1 className="text-xl font-bold text-charcoal">Grocery list</h1>
+        <div className="flex items-center gap-2 text-sm">
+          <Link href={`/grocery?date=${prevIso}`} className="font-semibold text-orange-dark">
             ‹
           </Link>
-          <span className="font-medium text-slate-700">{mealPlan?.dayLabel ?? iso}</span>
-          <Link href={`/grocery?date=${nextIso}`} className="text-emerald-700">
+          <span className="font-medium text-charcoal">{mealPlan?.dayLabel ?? iso}</span>
+          <Link href={`/grocery?date=${nextIso}`} className="font-semibold text-orange-dark">
             ›
           </Link>
         </div>
@@ -74,23 +74,23 @@ export default async function GroceryPage({ searchParams }: { searchParams: Prom
 
       {!mealPlan ? (
         <Card>
-          <p className="text-sm text-slate-600">No meal plan for {iso} yet. Generate your weekly plan first.</p>
+          <p className="text-sm text-charcoal-muted">No meal plan for {iso} yet. Generate your weekly plan first.</p>
         </Card>
       ) : (
         <>
-          <Card className="flex items-center justify-between bg-slate-50">
+          <Card className="flex items-center justify-between bg-cream-deep">
             <RegenerateGroceryButton userId={user.id} forDate={iso} />
             <SendWhatsAppButton userId={user.id} type="GROCERY" day={iso} hasNumbers={user.whatsappNumbers.length > 0} />
           </Card>
 
           {Array.from(byCategory.entries()).map(([category, categoryItems]) => (
             <Card key={category}>
-              <h2 className="mb-2 text-sm font-semibold capitalize text-slate-900">{category}</h2>
-              <ul className="space-y-1 text-sm text-slate-700">
+              <h2 className="mb-2 text-sm font-semibold capitalize text-charcoal">{category}</h2>
+              <ul className="space-y-1 text-sm text-charcoal">
                 {categoryItems.map((item, i) => (
-                  <li key={i} className="flex justify-between border-b border-slate-100 py-1 last:border-0">
+                  <li key={i} className="flex justify-between border-b border-warm-border py-1 last:border-0">
                     <span>{item.name}</span>
-                    <span className="text-slate-500">
+                    <span className="text-charcoal-muted">
                       {item.quantity}
                       {item.unit}
                     </span>

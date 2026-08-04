@@ -44,11 +44,11 @@ export default function WeightTracker({
   return (
     <Card>
       <div className="mb-2 flex items-center justify-between">
-        <h3 className="text-sm font-semibold text-slate-900">Weight progress</h3>
-        <span className="text-xs text-slate-500">Target: {targetWeightKg}kg</span>
+        <h3 className="text-sm font-semibold text-charcoal">Weight progress</h3>
+        <span className="text-xs text-charcoal-muted">Target: {targetWeightKg}kg</span>
       </div>
       {points.length > 1 && (
-        <svg viewBox="0 0 100 30" className="mb-2 h-12 w-full text-emerald-600">
+        <svg viewBox="0 0 100 30" className="mb-2 h-12 w-full text-orange">
           <polyline points={sparkline} fill="none" stroke="currentColor" strokeWidth="1.5" />
         </svg>
       )}
@@ -59,7 +59,7 @@ export default function WeightTracker({
           placeholder="Log today's weight (kg)"
           value={value}
           onChange={(e) => setValue(e.target.value)}
-          className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
+          className="w-full rounded-xl border border-warm-border bg-cream px-3 py-2 text-sm text-charcoal focus:border-orange focus:outline-none"
         />
         <Button onClick={submit} disabled={saving || !value} variant="secondary">
           Log

@@ -28,18 +28,18 @@ export default async function DailyPlanPage({ params }: { params: Promise<{ day:
 
   return (
     <div className="space-y-4">
-      <Link href="/plan" className="text-sm text-emerald-700">
+      <Link href="/plan" className="text-sm font-medium text-orange-dark">
         ‹ Back to week
       </Link>
 
       <div className="flex items-center justify-between">
-        <h1 className="text-xl font-bold text-slate-900">{mealPlan.dayLabel}</h1>
-        <p className="text-sm text-slate-500">
+        <h1 className="text-xl font-bold text-charcoal">{mealPlan.dayLabel}</h1>
+        <p className="text-sm text-charcoal-muted">
           {Math.round(mealPlan.totalCalories)} kcal · {Math.round(mealPlan.totalProteinG)}g protein
         </p>
       </div>
 
-      <Card className="bg-slate-50">
+      <Card className="bg-cream-deep">
         <SendWhatsAppButton userId={user.id} type="DIET" day={day} hasNumbers={user.whatsappNumbers.length > 0} />
       </Card>
 

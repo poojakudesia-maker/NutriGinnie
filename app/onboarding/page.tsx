@@ -11,21 +11,21 @@ export default async function OnboardingPage() {
   return (
     <div className="mx-auto w-full max-w-2xl flex-1 px-4 py-6">
       <div className="mb-6 text-center">
-        <h1 className="text-2xl font-bold text-emerald-700">NutriPing</h1>
-        <p className="text-sm text-slate-500">Tell us about yourself to get your personalized diet plan.</p>
+        <h1 className="text-2xl font-bold text-orange-dark">NutriPing</h1>
+        <p className="text-sm text-charcoal-muted">Tell us about yourself to get your personalized diet plan.</p>
       </div>
       <div className="mb-5">
         <GoogleButton />
-        <div className="my-4 flex items-center gap-3 text-xs text-slate-400">
-          <div className="h-px flex-1 bg-slate-200" />
+        <div className="my-4 flex items-center gap-3 text-xs text-charcoal-muted">
+          <div className="h-px flex-1 bg-warm-border" />
           or sign up with email
-          <div className="h-px flex-1 bg-slate-200" />
+          <div className="h-px flex-1 bg-warm-border" />
         </div>
       </div>
       <OnboardingForm />
-      <p className="mt-4 text-center text-sm text-slate-500">
+      <p className="mt-4 text-center text-sm text-charcoal-muted">
         Already have an account?{" "}
-        <Link href="/login" className="font-medium text-emerald-700">
+        <Link href="/login" className="font-medium text-orange-dark">
           Log in
         </Link>
       </p>

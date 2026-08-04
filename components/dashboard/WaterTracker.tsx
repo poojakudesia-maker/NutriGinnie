@@ -27,12 +27,12 @@ export default function WaterTracker({ userId, totalMl }: { userId: string; tota
   return (
     <Card>
       <div className="mb-2 flex items-center justify-between">
-        <h3 className="text-sm font-semibold text-slate-900">💧 Water intake</h3>
-        <span className="text-xs text-slate-500">
+        <h3 className="text-sm font-semibold text-charcoal">💧 Water intake</h3>
+        <span className="text-xs text-charcoal-muted">
           {totalMl}ml / {DAILY_GOAL_ML}ml
         </span>
       </div>
-      <div className="mb-3 h-2 w-full overflow-hidden rounded-full bg-slate-100">
+      <div className="mb-3 h-2 w-full overflow-hidden rounded-full bg-cream-deep">
         <div className="h-full bg-sky-500 transition-all" style={{ width: `${pct}%` }} />
       </div>
       <div className="flex gap-2">

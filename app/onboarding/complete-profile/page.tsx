@@ -10,8 +10,8 @@ export default async function CompleteProfilePage() {
   return (
     <div className="mx-auto w-full max-w-2xl flex-1 px-4 py-6">
       <div className="mb-6 text-center">
-        <h1 className="text-2xl font-bold text-emerald-700">Welcome, {user.name}!</h1>
-        <p className="text-sm text-slate-500">A few more details to build your personalized diet plan.</p>
+        <h1 className="text-2xl font-bold text-orange-dark">Welcome, {user.name}!</h1>
+        <p className="text-sm text-charcoal-muted">A few more details to build your personalized diet plan.</p>
       </div>
       <CompleteProfileForm userId={user.id} />
     </div>

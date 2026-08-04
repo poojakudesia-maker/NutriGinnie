@@ -17,15 +17,32 @@ export default async function DashboardPage() {
   const weekStart = weekStartDate();
   const mealPlanCount = await prisma.mealPlan.count({ where: { userId: user.id, weekStartDate: weekStart } });
 
+  const calorieProgressPct =
+    user.calorieTarget && user.tdee ? Math.min(100, Math.round((user.calorieTarget / user.tdee) * 100)) : null;
+
   return (
     <div className="space-y-4">
-      <div>
-        <h1 className="text-xl font-bold text-slate-900">Hi {user.name} 👋</h1>
-        <p className="text-sm text-slate-500">Here&apos;s where your plan stands today.</p>
+      <div className="gradient-hero relative overflow-hidden rounded-3xl p-5 text-white shadow-[0_16px_40px_-12px_rgba(217,88,31,0.5)]">
+        <p className="text-sm font-medium text-white/85">Welcome back</p>
+        <h1 className="text-2xl font-bold">Hi {user.name} 👋</h1>
+        <p className="mt-1 text-sm text-white/85">Here&apos;s where your plan stands today.</p>
+
+        {calorieProgressPct !== null && (
+          <div className="mt-5 rounded-2xl bg-white/15 p-4 backdrop-blur">
+            <p className="text-xs font-medium uppercase tracking-wide text-white/80">Today&apos;s calorie target</p>
+            <p className="mt-1 text-3xl font-bold">{Math.round(user.calorieTarget!)} kcal</p>
+            <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-white/25">
+              <div className="h-full rounded-full bg-white" style={{ width: `${calorieProgressPct}%` }} />
+            </div>
+            <p className="mt-1.5 text-xs text-white/80">
+              {Math.round(user.calorieTarget!)} / {Math.round(user.tdee!)} kcal TDEE · {Math.round(user.deficitKcal ?? 0)} kcal deficit
+            </p>
+          </div>
+        )}
       </div>
 
       {user.isGlp1 && (
-        <div className="rounded-xl bg-violet-50 px-3 py-2 text-xs font-medium text-violet-700">
+        <div className="rounded-2xl bg-sage-light px-3 py-2 text-xs font-medium text-sage">
           GLP-1 protocol active{user.glp1Medication ? ` (${user.glp1Medication})` : ""}: smaller deficit, higher
           protein target, easy-to-digest meals.
         </div>
@@ -52,16 +69,16 @@ export default async function DashboardPage() {
       <RecipeForm userId={user.id} />
 
       {mealPlanCount === 0 ? (
-        <Card className="flex flex-col items-start gap-2 bg-emerald-50">
-          <p className="text-sm font-medium text-emerald-800">
+        <Card className="flex flex-col items-start gap-2 bg-orange-light">
+          <p className="text-sm font-medium text-orange-dark">
             Ready to build your diet plan? AI will generate 7 days of meals matched to your calorie and protein
             targets, using anything you&apos;ve uploaded or added above.
           </p>
           <GeneratePlanButton userId={user.id} />
         </Card>
       ) : (
-        <Card className="flex items-center justify-between bg-emerald-50">
-          <p className="text-sm font-medium text-emerald-800">This week&apos;s plan is ready.</p>
+        <Card className="flex items-center justify-between bg-orange-light">
+          <p className="text-sm font-medium text-orange-dark">This week&apos;s plan is ready.</p>
           <Link href="/plan">
             <Button variant="secondary">View plan</Button>
           </Link>

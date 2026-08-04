@@ -12,9 +12,13 @@ const MEDICAL_CONDITIONS = ["Diabetes", "Hypertension", "PCOS/PCOD", "Thyroid", 
 const CUISINES = ["Indian", "South Indian", "North Indian", "Gujarati", "Punjabi", "Continental"];
 
 const inputClass =
-  "w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500";
-const labelClass = "mb-1 block text-sm font-medium text-slate-700";
+  "w-full rounded-xl border border-warm-border bg-cream px-3 py-2 text-sm text-charcoal focus:border-orange focus:outline-none focus:ring-1 focus:ring-orange";
+const labelClass = "mb-1 block text-sm font-medium text-charcoal";
 const errorClass = "mt-1 text-xs text-red-600";
+const chipClass = (checked: boolean) =>
+  `rounded-full border px-3 py-1 text-xs font-medium ${
+    checked ? "border-orange bg-orange-light text-orange-dark" : "border-warm-border text-charcoal-muted"
+  }`;
 
 export default function CompleteProfileForm({ userId }: { userId: string }) {
   const router = useRouter();
@@ -73,7 +77,7 @@ export default function CompleteProfileForm({ userId }: { userId: string }) {
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
       <Card>
-        <h2 className="mb-3 text-base font-semibold text-slate-900">Basic profile</h2>
+        <h2 className="mb-3 text-base font-semibold text-charcoal">Basic profile</h2>
         <div className="grid grid-cols-2 gap-3">
           <div>
             <label className={labelClass}>Age</label>
@@ -115,7 +119,7 @@ export default function CompleteProfileForm({ userId }: { userId: string }) {
       </Card>
 
       <Card>
-        <h2 className="mb-3 text-base font-semibold text-slate-900">Health inputs</h2>
+        <h2 className="mb-3 text-base font-semibold text-charcoal">Health inputs</h2>
         <label className={labelClass}>Medical conditions</label>
         <Controller
           control={control}
@@ -133,9 +137,7 @@ export default function CompleteProfileForm({ userId }: { userId: string }) {
                         checked ? field.value.filter((c) => c !== condition) : [...field.value, condition]
                       )
                     }
-                    className={`rounded-full border px-3 py-1 text-xs font-medium ${
-                      checked ? "border-emerald-600 bg-emerald-50 text-emerald-700" : "border-slate-300 text-slate-600"
-                    }`}
+                    className={chipClass(!!checked)}
                   >
                     {condition}
                   </button>
@@ -145,9 +147,9 @@ export default function CompleteProfileForm({ userId }: { userId: string }) {
           )}
         />
 
-        <div className="rounded-lg bg-amber-50 p-3">
-          <label className="flex items-center gap-2 text-sm font-medium text-slate-800">
-            <input type="checkbox" {...register("isGlp1")} className="h-4 w-4" />
+        <div className="rounded-xl bg-sage-light p-3">
+          <label className="flex items-center gap-2 text-sm font-medium text-charcoal">
+            <input type="checkbox" {...register("isGlp1")} className="h-4 w-4 accent-orange" />
             Are you taking any GLP-1 medication (Ozempic, Semaglutide, etc.)?
           </label>
           {isGlp1 && (
@@ -167,13 +169,13 @@ export default function CompleteProfileForm({ userId }: { userId: string }) {
       </Card>
 
       <Card>
-        <h2 className="mb-3 text-base font-semibold text-slate-900">Food preferences</h2>
+        <h2 className="mb-3 text-base font-semibold text-charcoal">Food preferences</h2>
         <label className={labelClass}>Diet type</label>
         <div className="mb-3 flex gap-2">
           {(["VEG", "EGGETARIAN", "NON_VEG"] as const).map((type) => (
             <label
               key={type}
-              className="flex flex-1 cursor-pointer items-center justify-center gap-1 rounded-lg border border-slate-300 px-2 py-2 text-sm has-[:checked]:border-emerald-600 has-[:checked]:bg-emerald-50"
+              className="flex flex-1 cursor-pointer items-center justify-center gap-1 rounded-xl border border-warm-border px-2 py-2 text-sm has-[:checked]:border-orange has-[:checked]:bg-orange-light"
             >
               <input type="radio" value={type} {...register("dietType")} className="hidden" />
               {type === "VEG" ? "Veg" : type === "EGGETARIAN" ? "Eggetarian" : "Non-veg"}
@@ -210,9 +212,7 @@ export default function CompleteProfileForm({ userId }: { userId: string }) {
                     onClick={() =>
                       field.onChange(checked ? field.value.filter((c) => c !== cuisine) : [...field.value, cuisine])
                     }
-                    className={`rounded-full border px-3 py-1 text-xs font-medium ${
-                      checked ? "border-emerald-600 bg-emerald-50 text-emerald-700" : "border-slate-300 text-slate-600"
-                    }`}
+                    className={chipClass(!!checked)}
                   >
                     {cuisine}
                   </button>
@@ -224,8 +224,8 @@ export default function CompleteProfileForm({ userId }: { userId: string }) {
       </Card>
 
       <Card>
-        <h2 className="mb-1 text-base font-semibold text-slate-900">WhatsApp numbers</h2>
-        <p className="mb-3 text-xs text-slate-500">Add up to 2 numbers with country code, e.g. +919876543210</p>
+        <h2 className="mb-1 text-base font-semibold text-charcoal">WhatsApp numbers</h2>
+        <p className="mb-3 text-xs text-charcoal-muted">Add up to 2 numbers with country code, e.g. +919876543210</p>
         <div className="space-y-2">
           <input className={inputClass} placeholder="+91XXXXXXXXXX" {...register("whatsappNumbers.0")} />
           <input className={inputClass} placeholder="+91XXXXXXXXXX (optional)" {...register("whatsappNumbers.1")} />

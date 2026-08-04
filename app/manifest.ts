@@ -8,8 +8,8 @@ export default function manifest(): MetadataRoute.Manifest {
       "Personalized Indian diet plans, calorie & macro tracking, and daily WhatsApp reminders.",
     start_url: "/dashboard",
     display: "standalone",
-    background_color: "#0f172a",
-    theme_color: "#16a34a",
+    background_color: "#fbf6ef",
+    theme_color: "#f4703a",
     orientation: "portrait",
     icons: [
       { src: "/icon-192.png", sizes: "192x192", type: "image/png", purpose: "any" },

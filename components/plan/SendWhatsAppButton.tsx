@@ -40,7 +40,7 @@ export default function SendWhatsAppButton({
   };
 
   if (!hasNumbers) {
-    return <p className="text-xs text-slate-500">Add a WhatsApp number in Settings to enable sending.</p>;
+    return <p className="text-xs text-charcoal-muted">Add a WhatsApp number in Settings to enable sending.</p>;
   }
 
   return (

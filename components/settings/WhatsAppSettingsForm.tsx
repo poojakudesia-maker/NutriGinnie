@@ -32,13 +32,13 @@ export default function WhatsAppSettingsForm({ userId, initialNumbers }: { userI
 
   return (
     <Card>
-      <h2 className="mb-2 text-sm font-semibold text-slate-900">WhatsApp numbers</h2>
-      <p className="mb-3 text-xs text-slate-500">Up to 2 numbers, with country code (e.g. +919876543210).</p>
+      <h2 className="mb-2 text-sm font-semibold text-charcoal">WhatsApp numbers</h2>
+      <p className="mb-3 text-xs text-charcoal-muted">Up to 2 numbers, with country code (e.g. +919876543210).</p>
       <div className="space-y-2">
         {[0, 1].map((i) => (
           <input
             key={i}
-            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
+            className="w-full rounded-xl border border-warm-border bg-cream px-3 py-2 text-sm text-charcoal focus:border-orange focus:outline-none"
             placeholder="+91XXXXXXXXXX"
             value={numbers[i]}
             onChange={(e) => {
@@ -53,7 +53,7 @@ export default function WhatsAppSettingsForm({ userId, initialNumbers }: { userI
         <Button variant="secondary" onClick={save} disabled={saving}>
           {saving ? "Saving…" : "Save numbers"}
         </Button>
-        {message && <span className="text-xs text-slate-600">{message}</span>}
+        {message && <span className="text-xs text-charcoal-muted">{message}</span>}
       </div>
     </Card>
   );

@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 
 const inputClass =
-  "w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500";
+  "w-full rounded-xl border border-warm-border bg-cream px-3 py-2 text-sm text-charcoal focus:border-orange focus:outline-none focus:ring-1 focus:ring-orange";
 
 export default function LoginForm() {
   const router = useRouter();
@@ -41,7 +41,7 @@ export default function LoginForm() {
   return (
     <form onSubmit={onSubmit} className="space-y-3">
       <div>
-        <label className="mb-1 block text-sm font-medium text-slate-700">Email</label>
+        <label className="mb-1 block text-sm font-medium text-charcoal">Email</label>
         <input
           type="email"
           required
@@ -51,7 +51,7 @@ export default function LoginForm() {
         />
       </div>
       <div>
-        <label className="mb-1 block text-sm font-medium text-slate-700">Password</label>
+        <label className="mb-1 block text-sm font-medium text-charcoal">Password</label>
         <input
           type="password"
           required

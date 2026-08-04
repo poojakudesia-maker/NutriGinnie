@@ -40,8 +40,8 @@ export default function PdfUploadForm({ userId }: { userId: string }) {
 
   return (
     <Card>
-      <h2 className="mb-2 text-sm font-semibold text-slate-900">Upload your diet plan (PDF or DOCX)</h2>
-      <p className="mb-3 text-xs text-slate-500">We&apos;ll extract dishes, ingredients and macros with AI.</p>
+      <h2 className="mb-2 text-sm font-semibold text-charcoal">Upload your diet plan (PDF or DOCX)</h2>
+      <p className="mb-3 text-xs text-charcoal-muted">We&apos;ll extract dishes, ingredients and macros with AI.</p>
       <div className="flex items-center gap-3">
         <input
           ref={fileRef}
@@ -53,7 +53,7 @@ export default function PdfUploadForm({ userId }: { userId: string }) {
           {uploading ? "Parsing with AI…" : "Upload"}
         </Button>
       </div>
-      {message && <p className="mt-2 text-xs text-slate-600">{message}</p>}
+      {message && <p className="mt-2 text-xs text-charcoal-muted">{message}</p>}
     </Card>
   );
 }

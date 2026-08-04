@@ -50,20 +50,20 @@ export default function RecipeForm({ userId }: { userId: string }) {
 
   return (
     <Card>
-      <h2 className="mb-2 text-sm font-semibold text-slate-900">Add a recipe</h2>
-      <p className="mb-3 text-xs text-slate-500">
+      <h2 className="mb-2 text-sm font-semibold text-charcoal">Add a recipe</h2>
+      <p className="mb-3 text-xs text-charcoal-muted">
         Paste a YouTube link and we&apos;ll auto-fetch its transcript. For Instagram (or any raw
         recipe), paste the caption/text too. AI structures it into ingredients and macros — this
         becomes part of your diet plan.
       </p>
       <input
-        className="mb-2 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
+        className="mb-2 w-full rounded-xl border border-warm-border bg-cream px-3 py-2 text-sm text-charcoal focus:border-orange focus:outline-none"
         placeholder="Instagram or YouTube link (optional)"
         value={videoUrl}
         onChange={(e) => setVideoUrl(e.target.value)}
       />
       <textarea
-        className="mb-2 h-28 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
+        className="mb-2 h-28 w-full rounded-xl border border-warm-border bg-cream px-3 py-2 text-sm text-charcoal focus:border-orange focus:outline-none"
         placeholder={isYouTube ? "Optional — leave blank to auto-fetch the transcript" : "Paste the recipe text / caption here..."}
         value={text}
         onChange={(e) => setText(e.target.value)}
@@ -71,7 +71,7 @@ export default function RecipeForm({ userId }: { userId: string }) {
       <Button variant="secondary" onClick={submit} disabled={saving}>
         {saving ? "Structuring with AI…" : "Add recipe"}
       </Button>
-      {message && <p className="mt-2 text-xs text-slate-600">{message}</p>}
+      {message && <p className="mt-2 text-xs text-charcoal-muted">{message}</p>}
     </Card>
   );
 }
