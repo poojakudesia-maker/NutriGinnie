@@ -4,19 +4,27 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 
-export default function GeneratePlanButton({ userId, label = "Generate my weekly plan" }: { userId: string; label?: string }) {
+export default function GeneratePlanButton({
+  userId,
+  hasRecipes,
+  regenerate = false,
+}: {
+  userId: string;
+  hasRecipes: boolean;
+  regenerate?: boolean;
+}) {
   const router = useRouter();
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState<"AUTO" | "AI" | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const generate = async () => {
-    setLoading(true);
+  const generate = async (mode: "AUTO" | "AI") => {
+    setLoading(mode);
     setError(null);
     try {
       const res = await fetch("/api/diet-plan/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId }),
+        body: JSON.stringify({ userId, mode }),
       });
       const json = await res.json();
       if (!res.ok) {
@@ -27,15 +35,28 @@ export default function GeneratePlanButton({ userId, label = "Generate my weekly
     } catch {
       setError("Network error. Please try again.");
     } finally {
-      setLoading(false);
+      setLoading(null);
     }
   };
 
+  const primaryLabel = hasRecipes
+    ? regenerate
+      ? "Regenerate from my recipes"
+      : "Generate my weekly plan"
+    : "Generate AI Diet Plan";
+
   return (
     <div>
-      <Button onClick={generate} disabled={loading}>
-        {loading ? "Generating with AI… (~20s)" : label}
-      </Button>
+      <div className="flex flex-wrap items-center gap-2">
+        <Button onClick={() => generate("AUTO")} disabled={loading !== null}>
+          {loading === "AUTO" ? (hasRecipes ? "Building your plan…" : "Generating with AI… (~20s)") : primaryLabel}
+        </Button>
+        {hasRecipes && (
+          <Button variant="ghost" onClick={() => generate("AI")} disabled={loading !== null}>
+            {loading === "AI" ? "Generating with AI… (~20s)" : "or generate with AI instead"}
+          </Button>
+        )}
+      </div>
       {error && <p className="mt-2 text-xs text-red-600">{error}</p>}
     </div>
   );

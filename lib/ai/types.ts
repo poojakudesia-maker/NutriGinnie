@@ -4,8 +4,11 @@ export interface StructuredIngredient {
   unit: string; // g, ml, tbsp, cup, piece, etc.
 }
 
+export type RecipeMealType = "BREAKFAST" | "SNACK" | "LUNCH" | "DINNER" | null;
+
 export interface StructuredRecipe {
   name: string;
+  mealType: RecipeMealType;
   ingredients: StructuredIngredient[];
   instructions: string;
   calories: number;

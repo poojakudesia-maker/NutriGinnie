@@ -99,14 +99,19 @@ export const loginSchema = z.object({
 const optionalNonEmptyString = (schema: z.ZodString) =>
   z.preprocess((val) => (typeof val === "string" && val.trim().length === 0 ? undefined : val), schema.optional());
 
-export const rawRecipeSchema = z.object({
-  userId: z.string().min(1),
+const recipeEntrySchema = z.object({
   name: optionalNonEmptyString(z.string().trim().min(1).max(200)),
   text: optionalNonEmptyString(z.string().trim().min(10, "Paste the full recipe text").max(20000)),
   videoUrl: optionalNonEmptyString(z.string().url()),
 }).refine((data) => !!data.text || !!data.videoUrl, {
   message: "Provide either recipe text or a video link",
   path: ["text"],
+});
+
+/** POST /api/recipes accepts a batch — one or more links/pastes added in a single submission. */
+export const rawRecipeBatchSchema = z.object({
+  userId: z.string().min(1),
+  entries: z.array(recipeEntrySchema).min(1, "Add at least one recipe").max(10, "Add at most 10 at a time"),
 });
 
 /** Best-effort platform detection for a pasted recipe video link, used to label/categorize the saved recipe. */
@@ -123,6 +128,9 @@ export function detectVideoPlatform(url: string): "INSTAGRAM" | "YOUTUBE" | null
 
 export const generatePlanSchema = z.object({
   userId: z.string().min(1),
+  // AUTO: use the user's own recipes if they have any, AI otherwise. AI: force AI generation
+  // even if the user has recipes (offered explicitly when they have none, or on request).
+  mode: z.enum(["AUTO", "AI"]).default("AUTO"),
 });
 
 export const sendWhatsAppSchema = z.object({

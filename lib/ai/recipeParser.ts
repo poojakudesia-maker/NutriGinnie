@@ -7,6 +7,10 @@ extract every distinct dish into a structured recipe object.
 
 For each dish produce:
 - name: the dish name
+- mealType: your best classification of "BREAKFAST", "SNACK", "LUNCH", or "DINNER" — use explicit
+  headings/labels in the source if present (e.g. a PDF section titled "Breakfast"); otherwise infer
+  from the dish itself (e.g. poha/idli/upma -> BREAKFAST, roasted chana/fruit -> SNACK, dal-rice/
+  roti-sabzi -> LUNCH or DINNER). Use null only if genuinely ambiguous.
 - ingredients: array of { name, quantity (number), unit (g, ml, tbsp, tsp, cup, piece, katori, etc.) }
 - instructions: short cooking steps (1-4 sentences), empty string if not present in source
 - calories, proteinG, carbsG, fatG, fiberG, ironMg, calciumMg: numeric nutrition PER SERVING
@@ -17,7 +21,8 @@ set "aiEstimated": true for that recipe. If values are explicitly stated in the 
 and set "aiEstimated": false.
 
 Return a JSON array of recipe objects matching this TypeScript type:
-{ name: string; ingredients: {name: string; quantity: number; unit: string}[]; instructions: string;
+{ name: string; mealType: "BREAKFAST" | "SNACK" | "LUNCH" | "DINNER" | null;
+  ingredients: {name: string; quantity: number; unit: string}[]; instructions: string;
   calories: number; proteinG: number; carbsG: number; fatG: number; fiberG: number; ironMg: number;
   calciumMg: number; micros?: Record<string, number>; aiEstimated: boolean }[]`;
 

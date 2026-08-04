@@ -42,11 +42,10 @@ enum AuthProvider {
   GOOGLE
 }
 
-enum MealSlot {
+enum RecipeMealType {
   BREAKFAST
-  SNACK_1
+  SNACK
   LUNCH
-  SNACK_2
   DINNER
 }
 
@@ -127,6 +126,11 @@ model Recipe {
   source       RecipeSource
   sourceUrl    String?
   rawInput     String? // original pasted text / instagram caption / pdf excerpt
+
+  // Best-effort classification from the source (e.g. a PDF's "Breakfast:" heading, or
+  // dish type inferred by the parser). Null when the source gives no hint — the
+  // deterministic weekly-plan builder treats null as "usable in any slot".
+  mealType RecipeMealType?
 
   ingredients  Json // [{ name, quantity, unit }]
   instructions String?

@@ -15,7 +15,10 @@ export default async function DashboardPage() {
   if (!user) return null; // (app) layout already redirects when there's no session
 
   const weekStart = weekStartDate();
-  const mealPlanCount = await prisma.mealPlan.count({ where: { userId: user.id, weekStartDate: weekStart } });
+  const [mealPlanCount, recipeCount] = await Promise.all([
+    prisma.mealPlan.count({ where: { userId: user.id, weekStartDate: weekStart } }),
+    prisma.recipe.count({ where: { userId: user.id } }),
+  ]);
 
   const calorieProgressPct =
     user.calorieTarget && user.tdee ? Math.min(100, Math.round((user.calorieTarget / user.tdee) * 100)) : null;
@@ -71,10 +74,11 @@ export default async function DashboardPage() {
       {mealPlanCount === 0 ? (
         <Card className="flex flex-col items-start gap-2 bg-orange-light">
           <p className="text-sm font-medium text-orange-dark">
-            Ready to build your diet plan? AI will generate 7 days of meals matched to your calorie and protein
-            targets, using anything you&apos;ve uploaded or added above.
+            {recipeCount > 0
+              ? `Ready to build your diet plan? We'll assemble 7 days directly from your ${recipeCount} uploaded recipe${recipeCount === 1 ? "" : "s"} above — no AI needed unless you ask for it.`
+              : "Ready to build your diet plan? Upload a PDF/DOCX or add recipes above to build from those, or generate an AI-created plan now."}
           </p>
-          <GeneratePlanButton userId={user.id} />
+          <GeneratePlanButton userId={user.id} hasRecipes={recipeCount > 0} />
         </Card>
       ) : (
         <Card className="flex items-center justify-between bg-orange-light">

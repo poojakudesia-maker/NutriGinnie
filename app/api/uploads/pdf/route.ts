@@ -54,6 +54,7 @@ export async function POST(req: NextRequest) {
           data: {
             userId,
             name: recipe.name,
+            mealType: recipe.mealType,
             source: isPdf ? "PDF" : "DOCX",
             rawInput: text.slice(0, 5000),
             ingredients: recipe.ingredients as unknown as Prisma.InputJsonValue,

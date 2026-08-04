@@ -5,41 +5,64 @@ import { useRouter } from "next/navigation";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 
+interface Entry {
+  videoUrl: string;
+  text: string;
+}
+
+const emptyEntry = (): Entry => ({ videoUrl: "", text: "" });
+
 export default function RecipeForm({ userId }: { userId: string }) {
   const router = useRouter();
-  const [videoUrl, setVideoUrl] = useState("");
-  const [text, setText] = useState("");
+  const [entries, setEntries] = useState<Entry[]>([emptyEntry()]);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
 
-  const isYouTube = /youtube\.com|youtu\.be/.test(videoUrl);
+  const isYouTube = (url: string) => /youtube\.com|youtu\.be/.test(url);
+
+  const updateEntry = (i: number, patch: Partial<Entry>) => {
+    setEntries((prev) => prev.map((e, idx) => (idx === i ? { ...e, ...patch } : e)));
+  };
+
+  const addEntry = () => setEntries((prev) => [...prev, emptyEntry()]);
+  const removeEntry = (i: number) => setEntries((prev) => prev.filter((_, idx) => idx !== i));
 
   const submit = async () => {
-    if (!text.trim() && !videoUrl.trim()) {
-      setMessage("Paste a recipe/video link, or the recipe text itself.");
+    const usable = entries.filter((e) => e.videoUrl.trim() || e.text.trim());
+    if (usable.length === 0) {
+      setMessage("Add at least one link or paste some recipe text.");
       return;
     }
-    if (!text.trim() && videoUrl.trim() && !isYouTube) {
-      setMessage("Paste the caption/recipe text too — we can only auto-fetch YouTube transcripts.");
+    const invalid = usable.find((e) => !e.text.trim() && e.videoUrl.trim() && !isYouTube(e.videoUrl));
+    if (invalid) {
+      setMessage("For Instagram (or non-YouTube) links, paste the caption/recipe text too.");
       return;
     }
+
     setSaving(true);
     setMessage(null);
     try {
       const res = await fetch("/api/recipes", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId, text: text.trim() || undefined, videoUrl: videoUrl.trim() || undefined }),
+        body: JSON.stringify({
+          userId,
+          entries: usable.map((e) => ({ text: e.text.trim() || undefined, videoUrl: e.videoUrl.trim() || undefined })),
+        }),
       });
       const json = await res.json();
-      if (!res.ok) {
-        const firstIssue = json.issues?.fieldErrors && Object.values(json.issues.fieldErrors).flat()[0];
-        setMessage((firstIssue as string) ?? json.error ?? "Could not process this recipe.");
+      const succeeded = json.results?.filter((r: { ok: boolean }) => r.ok).length ?? 0;
+      const failed = json.results?.filter((r: { ok: boolean }) => !r.ok) ?? [];
+
+      if (!res.ok && succeeded === 0) {
+        setMessage(json.error ?? failed[0]?.error ?? "Could not process these recipes.");
         return;
       }
-      setMessage(`Saved ${json.recipes.length} recipe(s).`);
-      setText("");
-      setVideoUrl("");
+
+      let summary = `Saved ${succeeded} of ${usable.length} recipe entr${usable.length === 1 ? "y" : "ies"}.`;
+      if (failed.length > 0) summary += ` ${failed.length} failed: ${failed[0].error}`;
+      setMessage(summary);
+      setEntries([emptyEntry()]);
       router.refresh();
     } catch {
       setMessage("Network error. Please try again.");
@@ -50,27 +73,50 @@ export default function RecipeForm({ userId }: { userId: string }) {
 
   return (
     <Card>
-      <h2 className="mb-2 text-sm font-semibold text-charcoal">Add a recipe</h2>
+      <h2 className="mb-2 text-sm font-semibold text-charcoal">Add recipes</h2>
       <p className="mb-3 text-xs text-charcoal-muted">
-        Paste a YouTube link and we&apos;ll auto-fetch its transcript. For Instagram (or any raw
-        recipe), paste the caption/text too. AI structures it into ingredients and macros — this
-        becomes part of your diet plan.
+        Add as many Instagram/YouTube links or pasted recipes as you like, then save them all at
+        once. YouTube transcripts auto-fetch. AI structures each into ingredients and macros — these
+        become part of your diet plan.
       </p>
-      <input
-        className="mb-2 w-full rounded-xl border border-warm-border bg-cream px-3 py-2 text-sm text-charcoal focus:border-orange focus:outline-none"
-        placeholder="Instagram or YouTube link (optional)"
-        value={videoUrl}
-        onChange={(e) => setVideoUrl(e.target.value)}
-      />
-      <textarea
-        className="mb-2 h-28 w-full rounded-xl border border-warm-border bg-cream px-3 py-2 text-sm text-charcoal focus:border-orange focus:outline-none"
-        placeholder={isYouTube ? "Optional — leave blank to auto-fetch the transcript" : "Paste the recipe text / caption here..."}
-        value={text}
-        onChange={(e) => setText(e.target.value)}
-      />
-      <Button variant="secondary" onClick={submit} disabled={saving}>
-        {saving ? "Structuring with AI…" : "Add recipe"}
-      </Button>
+
+      <div className="space-y-3">
+        {entries.map((entry, i) => (
+          <div key={i} className="rounded-xl border border-warm-border p-3">
+            <div className="mb-2 flex items-center justify-between">
+              <span className="text-xs font-semibold text-charcoal-muted">Recipe {i + 1}</span>
+              {entries.length > 1 && (
+                <button type="button" onClick={() => removeEntry(i)} className="text-xs text-red-600">
+                  Remove
+                </button>
+              )}
+            </div>
+            <input
+              className="mb-2 w-full rounded-xl border border-warm-border bg-cream px-3 py-2 text-sm text-charcoal focus:border-orange focus:outline-none"
+              placeholder="Instagram or YouTube link (optional)"
+              value={entry.videoUrl}
+              onChange={(e) => updateEntry(i, { videoUrl: e.target.value })}
+            />
+            <textarea
+              className="h-20 w-full rounded-xl border border-warm-border bg-cream px-3 py-2 text-sm text-charcoal focus:border-orange focus:outline-none"
+              placeholder={
+                isYouTube(entry.videoUrl) ? "Optional — leave blank to auto-fetch the transcript" : "Paste the recipe text / caption here..."
+              }
+              value={entry.text}
+              onChange={(e) => updateEntry(i, { text: e.target.value })}
+            />
+          </div>
+        ))}
+      </div>
+
+      <div className="mt-3 flex items-center gap-3">
+        <Button variant="ghost" type="button" onClick={addEntry}>
+          + Add another
+        </Button>
+        <Button variant="secondary" onClick={submit} disabled={saving}>
+          {saving ? "Structuring with AI…" : "Save recipes"}
+        </Button>
+      </div>
       {message && <p className="mt-2 text-xs text-charcoal-muted">{message}</p>}
     </Card>
   );

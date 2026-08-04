@@ -11,16 +11,19 @@ export default async function WeeklyPlanPage() {
   if (!user) return null;
 
   const weekStart = weekStartDate();
-  const days = await prisma.mealPlan.findMany({
-    where: { userId: user.id, weekStartDate: weekStart },
-    orderBy: { dayIndex: "asc" },
-  });
+  const [days, recipeCount] = await Promise.all([
+    prisma.mealPlan.findMany({
+      where: { userId: user.id, weekStartDate: weekStart },
+      orderBy: { dayIndex: "asc" },
+    }),
+    prisma.recipe.count({ where: { userId: user.id } }),
+  ]);
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-bold text-charcoal">Weekly plan</h1>
-        <GeneratePlanButton userId={user.id} label={days.length ? "Regenerate" : "Generate"} />
+        <GeneratePlanButton userId={user.id} hasRecipes={recipeCount > 0} regenerate={days.length > 0} />
       </div>
 
       {days.length === 0 ? (
