@@ -11,8 +11,8 @@ export default function PdfUploadForm({ userId }: { userId: string }) {
   const [uploading, setUploading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
 
-  const upload = async () => {
-    const file = fileRef.current?.files?.[0];
+  const onFileSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
     if (!file) return;
 
     setUploading(true);
@@ -29,12 +29,12 @@ export default function PdfUploadForm({ userId }: { userId: string }) {
         return;
       }
       setMessage(`Extracted ${json.recipes.length} dish(es) from your PDF.`);
-      if (fileRef.current) fileRef.current.value = "";
       router.refresh();
     } catch {
       setMessage("Network error. Please try again.");
     } finally {
       setUploading(false);
+      if (fileRef.current) fileRef.current.value = "";
     }
   };
 
@@ -42,17 +42,16 @@ export default function PdfUploadForm({ userId }: { userId: string }) {
     <Card>
       <h2 className="mb-2 text-sm font-semibold text-charcoal">Upload your diet plan (PDF or DOCX)</h2>
       <p className="mb-3 text-xs text-charcoal-muted">We&apos;ll extract dishes, ingredients and macros with AI.</p>
-      <div className="flex items-center gap-3">
-        <input
-          ref={fileRef}
-          type="file"
-          accept="application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,.docx"
-          className="text-xs"
-        />
-        <Button variant="secondary" onClick={upload} disabled={uploading}>
-          {uploading ? "Parsing with AI…" : "Upload"}
-        </Button>
-      </div>
+      <input
+        ref={fileRef}
+        type="file"
+        accept="application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,.docx"
+        className="hidden"
+        onChange={onFileSelected}
+      />
+      <Button variant="secondary" onClick={() => fileRef.current?.click()} disabled={uploading}>
+        {uploading ? "Parsing with AI…" : "Select & Upload Diet Plan"}
+      </Button>
       {message && <p className="mt-2 text-xs text-charcoal-muted">{message}</p>}
     </Card>
   );
