@@ -9,16 +9,18 @@ import { Button } from "@/components/ui/Button";
 import PdfUploadForm from "@/components/settings/PdfUploadForm";
 import RecipeForm from "@/components/settings/RecipeForm";
 import GeneratePlanButton from "@/components/plan/GeneratePlanButton";
+import { RecipeList } from "@/components/recipes/RecipeList";
 
 export default async function DashboardPage() {
   const user = await getCurrentUser();
   if (!user) return null; // (app) layout already redirects when there's no session
 
   const weekStart = weekStartDate();
-  const [mealPlanCount, recipeCount] = await Promise.all([
+  const [mealPlanCount, recipes] = await Promise.all([
     prisma.mealPlan.count({ where: { userId: user.id, weekStartDate: weekStart } }),
-    prisma.recipe.count({ where: { userId: user.id } }),
+    prisma.recipe.findMany({ where: { userId: user.id }, orderBy: { createdAt: "desc" }, take: 100 }),
   ]);
+  const recipeCount = recipes.length;
 
   const calorieProgressPct =
     user.calorieTarget && user.tdee ? Math.min(100, Math.round((user.calorieTarget / user.tdee) * 100)) : null;
@@ -70,6 +72,7 @@ export default async function DashboardPage() {
 
       <PdfUploadForm userId={user.id} />
       <RecipeForm userId={user.id} />
+      <RecipeList recipes={recipes} />
 
       {mealPlanCount === 0 ? (
         <Card className="flex flex-col items-start gap-2 bg-orange-light">

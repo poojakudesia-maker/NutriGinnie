@@ -82,7 +82,7 @@ export async function generateWeekPlan(
   const plan = await askClaudeForJSON<WeekPlan>({
     system: DIET_PLAN_SYSTEM_PROMPT,
     prompt,
-    maxTokens: 8192,
+    maxTokens: 16000,
   });
   return plan;
 }

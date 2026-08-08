@@ -15,6 +15,13 @@ function getClient(): Anthropic {
 
 export const CLAUDE_MODEL = process.env.ANTHROPIC_MODEL || "claude-sonnet-4-5";
 
+function extractText(message: Anthropic.Message): string {
+  return message.content
+    .filter((block): block is Anthropic.TextBlock => block.type === "text")
+    .map((block) => block.text)
+    .join("\n");
+}
+
 /**
  * Sends a prompt to Claude and parses the response as JSON. Throws if the
  * model refuses to produce valid JSON after one repair attempt.
@@ -29,7 +36,7 @@ export async function askClaudeForJSON<T>(opts: {
   maxTokens?: number;
 }): Promise<T> {
   const client = getClient();
-  const { system, prompt, maxTokens = 4096 } = opts;
+  const { system, prompt, maxTokens = 16000 } = opts;
 
   const message = await client.messages.create({
     model: CLAUDE_MODEL,
@@ -38,13 +45,24 @@ export async function askClaudeForJSON<T>(opts: {
     messages: [{ role: "user", content: prompt }],
   });
 
-  const text = message.content
-    .filter((block): block is Anthropic.TextBlock => block.type === "text")
-    .map((block) => block.text)
-    .join("\n");
+  const text = extractText(message);
+  const truncated = message.stop_reason === "max_tokens";
+  if (truncated) {
+    console.error(
+      `askClaudeForJSON: response hit max_tokens (${maxTokens}) and was truncated. The input was likely too large — consider a shorter document or splitting it up. First 500 chars of the (incomplete) response:\n${text.slice(0, 500)}`
+    );
+  }
 
   const parsed = tryParseJSON<T>(text);
   if (parsed) return parsed;
+
+  // Truncated output can't be meaningfully "repaired" — the model would just guess at what's
+  // missing. Fail fast with an actionable message instead of wasting a second call on it.
+  if (truncated) {
+    throw new Error(
+      "The document was too large for the AI to process in one pass. Try uploading a shorter document, or fewer pages at a time."
+    );
+  }
 
   // One repair attempt: ask Claude to fix its own malformed output.
   const repair = await client.messages.create({
@@ -53,14 +71,14 @@ export async function askClaudeForJSON<T>(opts: {
     system: "You output ONLY valid JSON, nothing else. Fix the JSON below so it parses with JSON.parse.",
     messages: [{ role: "user", content: text }],
   });
-  const repairText = repair.content
-    .filter((block): block is Anthropic.TextBlock => block.type === "text")
-    .map((block) => block.text)
-    .join("\n");
+  const repairText = extractText(repair);
 
   const repaired = tryParseJSON<T>(repairText);
   if (repaired) return repaired;
 
+  console.error(
+    `askClaudeForJSON: Claude did not return parseable JSON after a repair attempt. Original response (first 1000 chars):\n${text.slice(0, 1000)}\n\nRepair attempt (first 1000 chars):\n${repairText.slice(0, 1000)}`
+  );
   throw new Error("Claude did not return parseable JSON after a repair attempt.");
 }
 
