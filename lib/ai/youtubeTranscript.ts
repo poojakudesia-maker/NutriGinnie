@@ -28,8 +28,19 @@ interface CaptionTrack {
   kind?: string; // "asr" = auto-generated
 }
 
+/** Retries once after a short delay on a rate-limit/transient-server response, since YouTube's
+ *  unofficial page-scraping endpoint occasionally 429s a request that succeeds moments later. */
+async function fetchWithRetry(url: string, init?: RequestInit): Promise<Response> {
+  const res = await fetch(url, init);
+  if (res.status === 429 || res.status === 503) {
+    await new Promise((resolve) => setTimeout(resolve, 1500));
+    return fetch(url, init);
+  }
+  return res;
+}
+
 async function fetchCaptionTracks(videoId: string): Promise<CaptionTrack[]> {
-  const res = await fetch(`https://www.youtube.com/watch?v=${videoId}`, {
+  const res = await fetchWithRetry(`https://www.youtube.com/watch?v=${videoId}`, {
     headers: {
       "User-Agent":
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36",
@@ -37,7 +48,11 @@ async function fetchCaptionTracks(videoId: string): Promise<CaptionTrack[]> {
     },
   });
   if (!res.ok) {
-    throw new Error(`Could not load the YouTube video page (${res.status}).`);
+    throw new Error(
+      res.status === 429
+        ? "YouTube is rate-limiting these requests right now. Please try again in a minute, or paste the recipe text instead."
+        : `Could not load the YouTube video page (${res.status}).`
+    );
   }
   const html = await res.text();
 
