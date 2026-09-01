@@ -1,5 +1,5 @@
 import { askClaudeForJSON } from "./client";
-import type { WeekPlan } from "./types";
+import type { MealEntry, MealSourceLabel, WeekPlan } from "./types";
 
 export interface DietPlanUserContext {
   name: string;
@@ -22,6 +22,8 @@ export interface AvailableRecipe {
   proteinG: number | null;
   carbsG: number | null;
   fatG: number | null;
+  source: MealSourceLabel;
+  sourceUrl: string | null;
 }
 
 const DIET_PLAN_SYSTEM_PROMPT = `You are a registered-dietitian-grade meal planning engine specializing in Indian cuisine.
@@ -84,5 +86,59 @@ export async function generateWeekPlan(
     prompt,
     maxTokens: 16000,
   });
-  return plan;
+  return tagMealSources(plan, availableRecipes);
+}
+
+const SINGLE_MEAL_SYSTEM_PROMPT = `You are a registered-dietitian-grade Indian meal planning engine.
+Generate exactly ONE dish to replace a single meal slot in an existing plan.
+Rules: respect dietType strictly (VEG = no meat/fish/egg, EGGETARIAN = veg + eggs allowed, NON_VEG =
+anything), NEVER use any ingredient in the user's allergies, favor cuisinePreference, match
+targetCalories within 15%, and must be DIFFERENT from every dish in avoidNames.
+Return JSON matching exactly: { name: string; ingredients: {name:string; quantity:number; unit:string}[];
+  calories: number; proteinG: number; carbsG: number; fatG: number; fiberG: number }`;
+
+/** Powers the per-meal "Swap" button when no unused recipe of the user's own is available for
+ *  that slot — asks Claude for exactly one replacement dish instead of regenerating the week. */
+export async function generateSingleMealAlternative(
+  user: DietPlanUserContext,
+  mealType: "BREAKFAST" | "SNACK" | "LUNCH" | "DINNER",
+  targetCalories: number,
+  avoidNames: string[]
+): Promise<MealEntry> {
+  const prompt = `User: ${JSON.stringify(user, null, 2)}\nmealType: ${mealType}\ntargetCalories: ${targetCalories}\navoidNames: ${JSON.stringify(avoidNames)}`;
+  const dish = await askClaudeForJSON<Omit<MealEntry, "source" | "sourceUrl" | "recipeId">>({
+    system: SINGLE_MEAL_SYSTEM_PROMPT,
+    prompt,
+    maxTokens: 1024,
+  });
+  return { ...dish, source: "AI_GENERATED", sourceUrl: null };
+}
+
+/**
+ * Claude references reused recipes by recipeId but can't be trusted to echo
+ * back accurate source metadata, so we stamp it ourselves: any meal whose
+ * recipeId matches one of the user's own recipes gets that recipe's real
+ * source/sourceUrl, everything else is AI_GENERATED.
+ */
+function tagMealSources(plan: WeekPlan, availableRecipes: AvailableRecipe[]): WeekPlan {
+  const byId = new Map(availableRecipes.map((r) => [r.id, r]));
+  const tag = (meal: MealEntry): MealEntry => {
+    const match = meal.recipeId ? byId.get(meal.recipeId) : undefined;
+    return match
+      ? { ...meal, source: match.source, sourceUrl: match.sourceUrl }
+      : { ...meal, recipeId: undefined, source: "AI_GENERATED", sourceUrl: null };
+  };
+  return {
+    ...plan,
+    days: plan.days.map((day) => ({
+      ...day,
+      meals: {
+        breakfast: tag(day.meals.breakfast),
+        snack1: tag(day.meals.snack1),
+        lunch: tag(day.meals.lunch),
+        snack2: tag(day.meals.snack2),
+        dinner: tag(day.meals.dinner),
+      },
+    })),
+  };
 }

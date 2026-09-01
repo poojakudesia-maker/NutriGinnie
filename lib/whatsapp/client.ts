@@ -60,9 +60,33 @@ export async function sendWhatsAppVoiceNote(toNumber: string, mediaUrl: string, 
 }
 
 /**
- * Alternative transport: Meta WhatsApp Cloud API (used instead of Twilio
- * when META_WHATSAPP_TOKEN is configured). Kept as a thin, swappable
- * implementation behind the same SendResult shape — see README for setup.
+ * Provider-aware entry point for the PROACTIVE (business-initiated) text sends — the nightly diet
+ * + grocery message and the manual "send now" buttons. WhatsApp Business policy only allows
+ * freeform text (sendWhatsAppText) within a 24-hour customer-service window after the user last
+ * messaged in; a message sent outside that window (like a nightly reminder nobody replied to)
+ * needs a pre-approved Utility-category template instead, or Meta/Twilio will reject it.
+ *
+ * Set WHATSAPP_PROVIDER=meta_template (+ WHATSAPP_TEMPLATE_NAME, pointing at an approved template
+ * whose body is a single {{1}} variable) once you have one approved; the full formatted message is
+ * passed as that one parameter. Defaults to the Twilio freeform path, which is fine for sandbox
+ * testing but will start failing in production outside the 24h window.
+ */
+export async function sendWhatsAppMessage(toNumber: string, body: string): Promise<SendResult> {
+  const provider = process.env.WHATSAPP_PROVIDER ?? "twilio";
+  if (provider === "meta_template") {
+    const templateName = process.env.WHATSAPP_TEMPLATE_NAME;
+    if (!templateName) {
+      throw new Error("WHATSAPP_PROVIDER=meta_template requires WHATSAPP_TEMPLATE_NAME to be set.");
+    }
+    return sendMetaCloudTemplate(toNumber, templateName, [body]);
+  }
+  return sendWhatsAppText(toNumber, body);
+}
+
+/**
+ * Meta WhatsApp Cloud API transport, used directly by sendWhatsAppMessage()
+ * when WHATSAPP_PROVIDER=meta_template, and available standalone for any
+ * other approved template you want to send outside that path.
  */
 export async function sendMetaCloudTemplate(toNumber: string, templateName: string, params: string[]): Promise<SendResult> {
   const token = process.env.META_WHATSAPP_TOKEN;

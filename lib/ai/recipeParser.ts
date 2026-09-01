@@ -39,6 +39,23 @@ export async function parseRecipesFromText(rawText: string): Promise<StructuredR
 }
 
 /**
+ * Fallback for scanned/handwritten diet-plan PDFs: pdf-parse only reads embedded text, so a
+ * photographed or scanned chart extracts to empty/near-empty text (see uploads/pdf/route.ts,
+ * which calls this when that happens). Claude's vision can read a PDF directly — sending the raw
+ * bytes as a native document block lets it OCR the page image itself instead of failing.
+ */
+export async function parseRecipesFromPdfDocument(pdfBuffer: Buffer): Promise<StructuredRecipe[]> {
+  return askClaudeForJSON<StructuredRecipe[]>({
+    system: RECIPE_SYSTEM_PROMPT,
+    prompt: [
+      { type: "document", source: { type: "base64", media_type: "application/pdf", data: pdfBuffer.toString("base64") } },
+      { type: "text", text: "This is a scanned or handwritten diet-plan chart. Read it (including any handwriting) and extract structured recipes from it." },
+    ],
+    maxTokens: 16000,
+  });
+}
+
+/**
  * Neither Instagram nor YouTube expose a public unauthenticated API for
  * scraping post captions or video content server-side without violating ToS
  * or needing a login. We ask the user to paste the caption/description/

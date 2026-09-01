@@ -32,7 +32,7 @@ function extractText(message: Anthropic.Message): string {
  */
 export async function askClaudeForJSON<T>(opts: {
   system: string;
-  prompt: string;
+  prompt: string | Anthropic.MessageParam["content"];
   maxTokens?: number;
 }): Promise<T> {
   const client = getClient();

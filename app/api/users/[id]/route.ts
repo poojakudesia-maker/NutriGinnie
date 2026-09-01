@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { computeCalorieProfile } from "@/lib/calculations";
+import { computeCalorieProfile, applyCalorieBudget } from "@/lib/calculations";
 import { settingsSchema, completeProfileSchema } from "@/lib/validation/schemas";
 
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -24,12 +24,13 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   const body = await req.json().catch(() => null);
   if (!body) return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
 
-  if (body.whatsappNumbers !== undefined && Object.keys(body).length === 1) {
+  const LIGHT_SETTINGS_KEYS = new Set(["whatsappNumbers", "timezone", "dispatchHour", "whatsappRemindersEnabled"]);
+  if (Object.keys(body).length > 0 && Object.keys(body).every((k) => LIGHT_SETTINGS_KEYS.has(k))) {
     const parsed = settingsSchema.safeParse(body);
     if (!parsed.success) {
       return NextResponse.json({ error: "Validation failed", issues: parsed.error.flatten() }, { status: 400 });
     }
-    const user = await prisma.user.update({ where: { id }, data: { whatsappNumbers: parsed.data.whatsappNumbers } });
+    const user = await prisma.user.update({ where: { id }, data: parsed.data });
     const { passwordHash: _passwordHash, ...safeUser } = user;
     return NextResponse.json({ user: safeUser });
   }
@@ -49,6 +50,13 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     allergies: body.allergies ?? existing.allergies,
     cuisinePreference: body.cuisinePreference ?? existing.cuisinePreference,
     whatsappNumbers: body.whatsappNumbers ?? existing.whatsappNumbers,
+    timezone: body.timezone ?? existing.timezone,
+    dispatchHour: body.dispatchHour ?? existing.dispatchHour,
+    calorieSource: body.calorieSource ?? existing.calorieSource,
+    manualCalorieTarget: "manualCalorieTarget" in body ? body.manualCalorieTarget : existing.calorieTarget ?? undefined,
+    manualProteinTargetG: "manualProteinTargetG" in body ? body.manualProteinTargetG : existing.proteinTargetG ?? undefined,
+    manualCarbTargetG: "manualCarbTargetG" in body ? body.manualCarbTargetG : existing.carbTargetG ?? undefined,
+    manualFatTargetG: "manualFatTargetG" in body ? body.manualFatTargetG : existing.fatTargetG ?? undefined,
   });
   if (!parsed.success) {
     return NextResponse.json({ error: "Validation failed", issues: parsed.error.flatten() }, { status: 400 });
@@ -56,9 +64,11 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   const {
     gender, age, heightCm, weightKg, targetWeightKg, activityLevel, isGlp1,
     medicalConditions, glp1Medication, glp1DosageMg, dietType, allergies, cuisinePreference, whatsappNumbers,
+    timezone, dispatchHour,
   } = parsed.data;
 
   const profile = computeCalorieProfile({ gender, age, heightCm, weightKg, activityLevel, isGlp1 });
+  const budget = applyCalorieBudget(profile, parsed.data, profile.tdee);
 
   const user = await prisma.user.update({
     where: { id },
@@ -71,6 +81,9 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       allergies,
       cuisinePreference,
       whatsappNumbers,
+      timezone,
+      dispatchHour,
+      calorieSource: parsed.data.calorieSource,
       gender,
       age,
       heightCm,
@@ -81,9 +94,11 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       bmi: profile.bmi,
       bmr: profile.bmr,
       tdee: profile.tdee,
-      calorieTarget: profile.calorieTarget,
-      proteinTargetG: profile.proteinTargetG,
-      deficitKcal: profile.deficitKcal,
+      calorieTarget: budget.calorieTarget,
+      proteinTargetG: budget.proteinTargetG,
+      carbTargetG: budget.carbTargetG,
+      fatTargetG: budget.fatTargetG,
+      deficitKcal: budget.deficitKcal,
     },
   });
 

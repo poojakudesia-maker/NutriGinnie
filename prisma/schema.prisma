@@ -42,6 +42,11 @@ enum AuthProvider {
   GOOGLE
 }
 
+enum CalorieSource {
+  CALCULATED
+  MANUAL
+}
+
 enum RecipeMealType {
   BREAKFAST
   SNACK
@@ -61,6 +66,20 @@ enum WhatsAppStatus {
   DELIVERED
   READ
   FAILED
+}
+
+enum MealLogSlot {
+  BREAKFAST
+  SNACK1
+  LUNCH
+  SNACK2
+  DINNER
+}
+
+enum MealLogMethod {
+  PLANNED_CONFIRM
+  PHOTO
+  CUSTOM
 }
 
 model User {
@@ -96,12 +115,25 @@ model User {
   // WhatsApp (max 2 enforced at the application layer, see lib/validation)
   whatsappNumbers String[] @default([])
 
-  // Calculation engine outputs (cached, recomputed whenever profile changes)
+  // Delivery preferences: IANA timezone (auto-detected client-side at onboarding, used to
+  // schedule the nightly WhatsApp send at dispatchHour in *this user's* local time) and an
+  // opt-out for the reminder itself.
+  timezone                 String  @default("Asia/Kolkata")
+  dispatchHour             Int     @default(19) // 0-23, local time
+  whatsappRemindersEnabled Boolean @default(true)
+
+  // Calculation engine outputs. calorieSource MANUAL means the user entered their own
+  // dietitian-given budget directly instead of having it derived from BMR/TDEE — bmr/tdee/bmi
+  // are still computed (and shown) for reference, but calorieTarget/proteinTargetG/carbTargetG/
+  // fatTargetG come from the user's input rather than the formula in that case.
+  calorieSource    CalorieSource @default(CALCULATED)
   bmi              Float?
   bmr              Float?
   tdee             Float?
   calorieTarget    Float?
   proteinTargetG   Float?
+  carbTargetG      Float?
+  fatTargetG       Float?
   deficitKcal      Float?
 
   createdAt DateTime @default(now())
@@ -113,6 +145,8 @@ model User {
   whatsAppLogs  WhatsAppLog[]
   weightLogs    WeightLog[]
   waterLogs     WaterLog[]
+  mealLogs      MealLog[]
+  glp1Logs      Glp1Log[]
 
   @@map("users")
 }
@@ -235,4 +269,47 @@ model WaterLog {
 
   @@index([userId])
   @@map("water_logs")
+}
+
+// Daily Meal Logger: one row per (user, day, slot). "PLANNED_CONFIRM" copies macros straight
+// from that day's MealPlan slot; "PHOTO"/"CUSTOM" are AI-estimated off-plan swaps.
+model MealLog {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  forDate DateTime // date-only, midnight UTC — the day this meal belongs to
+  slot    MealLogSlot
+  method  MealLogMethod
+
+  description  String? // dish name (planned) or free-text description (custom/photo)
+  photoDataUrl String? @db.Text // base64 data URL of the logged photo, if any (no blob storage configured)
+
+  calories    Float
+  proteinG    Float
+  carbsG      Float
+  fatG        Float
+  aiEstimated Boolean @default(false)
+
+  createdAt DateTime @default(now())
+
+  @@unique([userId, forDate, slot])
+  @@index([userId])
+  @@map("meal_logs")
+}
+
+// GLP-1 side-effect & appetite log, shown only when User.isGlp1 is true.
+model Glp1Log {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  loggedAt         DateTime @default(now())
+  nauseaLevel      Int? // 0 (none) - 5 (severe)
+  hydrationMl      Int?
+  proteinCompliant Boolean?
+  notes            String?
+
+  @@index([userId])
+  @@map("glp1_logs")
 }

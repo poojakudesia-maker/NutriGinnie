@@ -63,6 +63,8 @@ export default async function DashboardPage() {
           sub={user.deficitKcal ? `${Math.round(user.deficitKcal)} kcal deficit` : undefined}
         />
         <StatTile label="Protein target" value={user.proteinTargetG ? `${Math.round(user.proteinTargetG)}g` : "—"} />
+        {user.carbTargetG != null && <StatTile label="Carb target" value={`${Math.round(user.carbTargetG)}g`} />}
+        {user.fatTargetG != null && <StatTile label="Fat target" value={`${Math.round(user.fatTargetG)}g`} />}
         <StatTile
           label="Current weight"
           value={user.weightKg != null ? `${user.weightKg}kg` : "—"}

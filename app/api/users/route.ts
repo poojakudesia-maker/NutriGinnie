@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { onboardingSchema } from "@/lib/validation/schemas";
-import { computeCalorieProfile } from "@/lib/calculations";
+import { computeCalorieProfile, applyCalorieBudget } from "@/lib/calculations";
 import { SESSION_COOKIE } from "@/lib/session";
 import { hashPassword } from "@/lib/auth/password";
 
@@ -33,6 +33,7 @@ export async function POST(req: NextRequest) {
     activityLevel: input.activityLevel,
     isGlp1: input.isGlp1,
   });
+  const budget = applyCalorieBudget(profile, input, profile.tdee);
 
   const user = await prisma.user.create({
     data: {
@@ -53,12 +54,17 @@ export async function POST(req: NextRequest) {
       allergies: input.allergies,
       cuisinePreference: input.cuisinePreference,
       whatsappNumbers: input.whatsappNumbers,
+      timezone: input.timezone,
+      dispatchHour: input.dispatchHour,
+      calorieSource: input.calorieSource,
       bmi: profile.bmi,
       bmr: profile.bmr,
       tdee: profile.tdee,
-      calorieTarget: profile.calorieTarget,
-      proteinTargetG: profile.proteinTargetG,
-      deficitKcal: profile.deficitKcal,
+      calorieTarget: budget.calorieTarget,
+      proteinTargetG: budget.proteinTargetG,
+      carbTargetG: budget.carbTargetG,
+      fatTargetG: budget.fatTargetG,
+      deficitKcal: budget.deficitKcal,
     },
   });
 

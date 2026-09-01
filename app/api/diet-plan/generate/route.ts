@@ -30,24 +30,39 @@ export async function POST(req: NextRequest) {
   const useOwnRecipes = mode === "AUTO" && recipes.length > 0;
 
   try {
-    const plan: WeekPlan = useOwnRecipes
-      ? buildPlanFromRecipes(recipes)
-      : await generateWeekPlan(
-          {
-            name: user.name,
-            gender,
-            age,
-            weightKg,
-            dietType: user.dietType,
-            allergies: user.allergies,
-            cuisinePreference: user.cuisinePreference,
-            medicalConditions: user.medicalConditions,
-            isGlp1: user.isGlp1,
-            calorieTarget: user.calorieTarget,
-            proteinTargetG: user.proteinTargetG,
-          },
-          recipes.map((r) => ({ id: r.id, name: r.name, calories: r.calories, proteinG: r.proteinG, carbsG: r.carbsG, fatG: r.fatG }))
-        );
+    let plan: WeekPlan;
+    let warnings: string[] = [];
+    if (useOwnRecipes) {
+      const result = buildPlanFromRecipes(recipes);
+      plan = result.plan;
+      warnings = result.warnings;
+    } else {
+      plan = await generateWeekPlan(
+        {
+          name: user.name,
+          gender,
+          age,
+          weightKg,
+          dietType: user.dietType,
+          allergies: user.allergies,
+          cuisinePreference: user.cuisinePreference,
+          medicalConditions: user.medicalConditions,
+          isGlp1: user.isGlp1,
+          calorieTarget: user.calorieTarget,
+          proteinTargetG: user.proteinTargetG,
+        },
+        recipes.map((r) => ({
+          id: r.id,
+          name: r.name,
+          calories: r.calories,
+          proteinG: r.proteinG,
+          carbsG: r.carbsG,
+          fatG: r.fatG,
+          source: r.source,
+          sourceUrl: r.sourceUrl,
+        }))
+      );
+    }
 
     const weekStart = weekStartDate();
 
@@ -71,7 +86,10 @@ export async function POST(req: NextRequest) {
       )
     );
 
-    return NextResponse.json({ weekStartDate: weekStart, days: created, usedOwnRecipes: useOwnRecipes }, { status: 201 });
+    return NextResponse.json(
+      { weekStartDate: weekStart, days: created, usedOwnRecipes: useOwnRecipes, warnings },
+      { status: 201 }
+    );
   } catch (err) {
     return toErrorResponse(err, "Diet plan generation failed.");
   }

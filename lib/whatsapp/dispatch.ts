@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { sendWhatsAppText, sendWhatsAppVoiceNote } from "./client";
+import { sendWhatsAppMessage, sendWhatsAppVoiceNote } from "./client";
 import { formatDietPlanMessage, formatGroceryMessage, formatDietAndGroceryMessage } from "./templates";
 import type { DayPlan, GroceryItem } from "@/lib/ai/types";
 import type { User } from "@prisma/client";
@@ -18,7 +18,7 @@ export async function sendDietPlanToUser(user: User, day: DayPlan): Promise<void
   const voiceUrl = `${getAppUrl()}/api/tts/voice?userId=${user.id}&dayIndex=${day.dayIndex}`;
 
   for (const phoneNumber of user.whatsappNumbers) {
-    await logAndSend(user.id, phoneNumber, "DIET_TEXT", text, () => sendWhatsAppText(phoneNumber, text));
+    await logAndSend(user.id, phoneNumber, "DIET_TEXT", text, () => sendWhatsAppMessage(phoneNumber, text));
     await logAndSend(user.id, phoneNumber, "DIET_VOICE", "[voice note]", () =>
       sendWhatsAppVoiceNote(phoneNumber, voiceUrl, "🎧 Your daily diet plan, in audio")
     );
@@ -31,7 +31,7 @@ export async function sendGroceryListToUser(user: User, forDayLabel: string, ite
 
   const text = formatGroceryMessage(user.name, forDayLabel, items);
   for (const phoneNumber of user.whatsappNumbers) {
-    await logAndSend(user.id, phoneNumber, "GROCERY_TEXT", text, () => sendWhatsAppText(phoneNumber, text));
+    await logAndSend(user.id, phoneNumber, "GROCERY_TEXT", text, () => sendWhatsAppMessage(phoneNumber, text));
   }
 }
 
@@ -47,7 +47,7 @@ export async function sendNightlyPlanToUser(user: User, day: DayPlan, groceryIte
   const voiceUrl = `${getAppUrl()}/api/tts/voice?userId=${user.id}&dayIndex=${day.dayIndex}`;
 
   for (const phoneNumber of user.whatsappNumbers) {
-    await logAndSend(user.id, phoneNumber, "DIET_TEXT", text, () => sendWhatsAppText(phoneNumber, text));
+    await logAndSend(user.id, phoneNumber, "DIET_TEXT", text, () => sendWhatsAppMessage(phoneNumber, text));
     await logAndSend(user.id, phoneNumber, "DIET_VOICE", "[voice note]", () =>
       sendWhatsAppVoiceNote(phoneNumber, voiceUrl, "🎧 Tomorrow's diet plan, in audio")
     );

@@ -132,3 +132,44 @@ export function validateExtremeDeficit(gender: Gender, tdee: number, requestedCa
 function round1(n: number): number {
   return Math.round(n * 10) / 10;
 }
+
+export interface CalorieBudgetOverride {
+  calorieSource: "CALCULATED" | "MANUAL";
+  manualCalorieTarget?: number;
+  manualProteinTargetG?: number;
+  manualCarbTargetG?: number;
+  manualFatTargetG?: number;
+}
+
+export interface CalorieBudget {
+  calorieTarget: number;
+  proteinTargetG: number;
+  carbTargetG: number | null;
+  fatTargetG: number | null;
+  deficitKcal: number;
+}
+
+/**
+ * BMR/TDEE/BMI are always computed (shown for reference either way). When the
+ * user has their own dietitian-given budget ("I know my calorie & macro
+ * budget"), their entered numbers become the actual targets instead of the
+ * formula's — deficitKcal is then just tdee minus whatever they entered.
+ */
+export function applyCalorieBudget(computed: CalorieResult, override: CalorieBudgetOverride, tdee: number): CalorieBudget {
+  if (override.calorieSource !== "MANUAL" || override.manualCalorieTarget == null || override.manualProteinTargetG == null) {
+    return {
+      calorieTarget: computed.calorieTarget,
+      proteinTargetG: computed.proteinTargetG,
+      carbTargetG: null,
+      fatTargetG: null,
+      deficitKcal: computed.deficitKcal,
+    };
+  }
+  return {
+    calorieTarget: override.manualCalorieTarget,
+    proteinTargetG: override.manualProteinTargetG,
+    carbTargetG: override.manualCarbTargetG ?? null,
+    fatTargetG: override.manualFatTargetG ?? null,
+    deficitKcal: round1(tdee - override.manualCalorieTarget),
+  };
+}

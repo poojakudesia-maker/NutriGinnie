@@ -22,6 +22,8 @@ export interface StructuredRecipe {
   aiEstimated: boolean;
 }
 
+export type MealSourceLabel = "PDF" | "DOCX" | "INSTAGRAM" | "YOUTUBE" | "MANUAL_TEXT" | "AI_GENERATED";
+
 export interface MealEntry {
   name: string;
   recipeId?: string;
@@ -31,6 +33,8 @@ export interface MealEntry {
   carbsG: number;
   fatG: number;
   fiberG: number;
+  source: MealSourceLabel;
+  sourceUrl?: string | null;
 }
 
 export interface DayPlan {

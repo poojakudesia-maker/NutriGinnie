@@ -1,7 +1,27 @@
 import { Card } from "@/components/ui/Card";
-import type { MealEntry } from "@/lib/ai/types";
+import { SwapMealButton } from "./SwapMealButton";
+import type { MealEntry, MealSourceLabel } from "@/lib/ai/types";
 
-export function MealCard({ icon, label, meal }: { icon: string; label: string; meal: MealEntry }) {
+const SOURCE_BADGE: Record<MealSourceLabel, string> = {
+  PDF: "From your diet plan PDF",
+  DOCX: "From your diet plan doc",
+  INSTAGRAM: "From Instagram",
+  YOUTUBE: "From YouTube",
+  MANUAL_TEXT: "From your saved recipe",
+  AI_GENERATED: "AI generated",
+};
+
+export function MealCard({
+  icon,
+  label,
+  meal,
+  swap,
+}: {
+  icon: string;
+  label: string;
+  meal: MealEntry;
+  swap?: { userId: string; weekStartDate: string; dayIndex: number; slot: "breakfast" | "snack1" | "lunch" | "snack2" | "dinner" };
+}) {
   return (
     <Card>
       <div className="mb-1 flex items-center justify-between">
@@ -13,7 +33,19 @@ export function MealCard({ icon, label, meal }: { icon: string; label: string; m
         </p>
         <p className="text-xs font-medium text-orange-dark">{Math.round(meal.calories)} kcal</p>
       </div>
-      <p className="mb-2 text-sm text-charcoal">{meal.name}</p>
+      <p className="mb-1 text-sm text-charcoal">{meal.name}</p>
+      <div className="mb-2 flex items-center justify-between">
+        <p className="text-[11px] font-medium text-sage">
+          {meal.sourceUrl ? (
+            <a href={meal.sourceUrl} target="_blank" rel="noopener noreferrer" className="underline">
+              {SOURCE_BADGE[meal.source]}
+            </a>
+          ) : (
+            SOURCE_BADGE[meal.source]
+          )}
+        </p>
+        {swap && <SwapMealButton {...swap} />}
+      </div>
       <div className="mb-2 flex gap-3 text-xs text-charcoal-muted">
         <span>P {Math.round(meal.proteinG)}g</span>
         <span>C {Math.round(meal.carbsG)}g</span>

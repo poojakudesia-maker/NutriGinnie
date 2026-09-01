@@ -4,8 +4,15 @@
  * a long-lived Node process. Run with `npm run worker`.
  *
  * Calls the same /api/cron/* route handler the Vercel cron config uses, so
- * there's exactly one implementation of "send tomorrow's diet plan +
- * grocery list" regardless of which platform triggers it.
+ * there's exactly one implementation of "send each user's next day's diet
+ * plan + grocery list at their own configured local time." The route itself
+ * figures out per-user which timezone/hour to fire in — this worker just
+ * needs to call it often enough (every 30 min) to catch every user's window.
+ *
+ * Note: Vercel's Hobby (free) plan only allows daily-cadence cron jobs, so
+ * the every-30-minutes schedule in vercel.json needs a Pro plan to actually
+ * fire that often; on Hobby, run this worker instead (Railway/Render/any
+ * always-on host) to get real per-timezone delivery.
  */
 import cron from "node-cron";
 
@@ -29,7 +36,8 @@ async function trigger(path: string) {
   }
 }
 
-// 7:00 PM IST nightly send: tomorrow's diet plan + grocery list combined (IST = UTC+5:30 -> 13:30 UTC)
-cron.schedule("30 13 * * *", () => trigger("/api/cron/nightly-plan"), { timezone: "UTC" });
+// Every 30 minutes: the route checks each user's own timezone/dispatchHour and only sends to
+// whoever's local time currently falls in their configured window.
+cron.schedule("*/30 * * * *", () => trigger("/api/cron/nightly-plan"), { timezone: "UTC" });
 
-console.log("NutriPing scheduler running: nightly-plan @ 19:00 IST (diet + groceries for the next day).");
+console.log("NutriPing scheduler running: nightly-plan every 30 min (per-user local-time diet + grocery send).");

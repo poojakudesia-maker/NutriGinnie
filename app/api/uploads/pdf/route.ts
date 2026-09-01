@@ -1,16 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
-import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { extractPdfText } from "@/lib/ai/pdfParser";
 import { extractDocxText } from "@/lib/ai/docParser";
-import { parseRecipesFromText } from "@/lib/ai/recipeParser";
+import { parseRecipesFromText, parseRecipesFromPdfDocument } from "@/lib/ai/recipeParser";
 import { toErrorResponse } from "@/lib/api/errors";
 
 const MAX_FILE_BYTES = 10 * 1024 * 1024; // 10MB
 
 const DOCX_MIME = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
 
-/** POST /api/uploads/pdf — multipart/form-data with `file` (PDF or DOCX) and `userId`. */
+/**
+ * POST /api/uploads/pdf — multipart/form-data with `file` (PDF or DOCX) and `userId`.
+ * Parses the document with AI and returns the extracted dishes for the user to review — nothing
+ * is saved here. The client shows a "review extracted meals" step (dish names + mealType, with a
+ * chance to fix a mis-tagged slot or drop a bad extraction) and then POSTs the confirmed list to
+ * /api/uploads/pdf/confirm to actually persist them.
+ */
 export async function POST(req: NextRequest) {
   const form = await req.formData().catch(() => null);
   if (!form) return NextResponse.json({ error: "Expected multipart/form-data" }, { status: 400 });
@@ -45,35 +50,14 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: (err as Error).message }, { status: 422 });
   }
 
+  // A scanned/handwritten PDF has no embedded text layer, so pdf-parse extracts next to nothing —
+  // fall back to sending Claude the raw PDF (it reads the page images directly) instead of failing.
+  const isScannedPdf = isPdf && text.trim().length < 50;
+  const rawInputPreview = isScannedPdf ? "(scanned PDF — text read directly from the document image)" : text.slice(0, 5000);
+
   try {
-    const structuredRecipes = await parseRecipesFromText(text);
-
-    const created = await prisma.$transaction(
-      structuredRecipes.map((recipe) =>
-        prisma.recipe.create({
-          data: {
-            userId,
-            name: recipe.name,
-            mealType: recipe.mealType,
-            source: isPdf ? "PDF" : "DOCX",
-            rawInput: text.slice(0, 5000),
-            ingredients: recipe.ingredients as unknown as Prisma.InputJsonValue,
-            instructions: recipe.instructions,
-            calories: recipe.calories,
-            proteinG: recipe.proteinG,
-            carbsG: recipe.carbsG,
-            fatG: recipe.fatG,
-            fiberG: recipe.fiberG,
-            ironMg: recipe.ironMg,
-            calciumMg: recipe.calciumMg,
-            micros: (recipe.micros ?? {}) as unknown as Prisma.InputJsonValue,
-            aiEstimated: recipe.aiEstimated,
-          },
-        })
-      )
-    );
-
-    return NextResponse.json({ recipes: created }, { status: 201 });
+    const recipes = isScannedPdf ? await parseRecipesFromPdfDocument(buffer) : await parseRecipesFromText(text);
+    return NextResponse.json({ source: isPdf ? "PDF" : "DOCX", rawInputPreview, recipes });
   } catch (err) {
     return toErrorResponse(err, "Could not process this document.");
   }

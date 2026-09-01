@@ -16,10 +16,12 @@ export default function GeneratePlanButton({
   const router = useRouter();
   const [loading, setLoading] = useState<"AUTO" | "AI" | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [warnings, setWarnings] = useState<string[]>([]);
 
   const generate = async (mode: "AUTO" | "AI") => {
     setLoading(mode);
     setError(null);
+    setWarnings([]);
     try {
       const res = await fetch("/api/diet-plan/generate", {
         method: "POST",
@@ -31,6 +33,7 @@ export default function GeneratePlanButton({
         setError(json.error ?? "Could not generate plan.");
         return;
       }
+      setWarnings(json.warnings ?? []);
       router.refresh();
     } catch {
       setError("Network error. Please try again.");
@@ -58,6 +61,13 @@ export default function GeneratePlanButton({
         )}
       </div>
       {error && <p className="mt-2 text-xs text-red-600">{error}</p>}
+      {warnings.length > 0 && (
+        <ul className="mt-2 space-y-1 rounded-xl bg-orange-light p-2.5 text-xs text-orange-dark">
+          {warnings.map((w, i) => (
+            <li key={i}>⚠️ {w}</li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }

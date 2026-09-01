@@ -14,9 +14,25 @@ import type { DayPlan, MealEntry, StructuredIngredient, WeekPlan } from "@/lib/a
  * recipes actually add up to — they won't be precision-tuned to
  * calorieTarget/proteinTargetG the way the AI-generated path is.
  */
-export function buildPlanFromRecipes(recipes: Recipe[]): WeekPlan {
+export interface BuildPlanResult {
+  plan: WeekPlan;
+  warnings: string[];
+}
+
+const SLOT_LABELS: Record<RecipeMealType, string> = {
+  BREAKFAST: "breakfast",
+  SNACK: "snack",
+  LUNCH: "lunch",
+  DINNER: "dinner",
+};
+
+// Each week needs this many meals per type (snack covers both snack1 + snack2).
+const SLOTS_NEEDED_PER_WEEK: Record<RecipeMealType, number> = { BREAKFAST: 7, SNACK: 14, LUNCH: 7, DINNER: 7 };
+
+export function buildPlanFromRecipes(recipes: Recipe[]): BuildPlanResult {
   const byType = groupByMealType(recipes);
   const cursors: Record<RecipeMealType, number> = { BREAKFAST: 0, SNACK: 0, LUNCH: 0, DINNER: 0 };
+  const warnings = buildShortageWarnings(byType);
 
   const pick = (type: RecipeMealType): Recipe => {
     const pool = byType[type].length > 0 ? byType[type] : recipes;
@@ -49,7 +65,29 @@ export function buildPlanFromRecipes(recipes: Recipe[]): WeekPlan {
     };
   });
 
-  return { weekStartDate: "PLACEHOLDER", days };
+  return { plan: { weekStartDate: "PLACEHOLDER", days }, warnings };
+}
+
+/**
+ * Flags meal-type pools that are empty (slot gets filled from other
+ * categories) or too small to cover the week without heavy repetition, so
+ * the UI can tell the user why their plan looks repetitive instead of
+ * silently rotating the same 1-2 recipes all week.
+ */
+function buildShortageWarnings(byType: Record<RecipeMealType, Recipe[]>): string[] {
+  const warnings: string[] = [];
+  for (const type of Object.keys(SLOT_LABELS) as RecipeMealType[]) {
+    const count = byType[type].length;
+    const label = SLOT_LABELS[type];
+    if (count === 0) {
+      warnings.push(`You have no recipes tagged as ${label} — those slots are being filled from your other recipes instead.`);
+    } else if (count < SLOTS_NEEDED_PER_WEEK[type]) {
+      warnings.push(
+        `You only have ${count} ${label} recipe${count === 1 ? "" : "s"}, so it'll repeat across the week. Add more ${label} recipes for more variety.`
+      );
+    }
+  }
+  return warnings;
 }
 
 function groupByMealType(recipes: Recipe[]): Record<RecipeMealType, Recipe[]> {
@@ -60,7 +98,7 @@ function groupByMealType(recipes: Recipe[]): Record<RecipeMealType, Recipe[]> {
   return groups;
 }
 
-function toMealEntry(recipe: Recipe): MealEntry {
+export function toMealEntry(recipe: Recipe): MealEntry {
   return {
     name: recipe.name,
     recipeId: recipe.id,
@@ -70,6 +108,8 @@ function toMealEntry(recipe: Recipe): MealEntry {
     carbsG: recipe.carbsG ?? 0,
     fatG: recipe.fatG ?? 0,
     fiberG: recipe.fiberG ?? 0,
+    source: recipe.source,
+    sourceUrl: recipe.sourceUrl,
   };
 }
 

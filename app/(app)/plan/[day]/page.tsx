@@ -44,11 +44,23 @@ export default async function DailyPlanPage({ params }: { params: Promise<{ day:
       </Card>
 
       <div className="space-y-3">
-        <MealCard icon="🥣" label="Breakfast" meal={meals.breakfast} />
-        <MealCard icon="🍎" label="Mid-morning snack" meal={meals.snack1} />
-        <MealCard icon="🍛" label="Lunch" meal={meals.lunch} />
-        <MealCard icon="🥤" label="Evening snack" meal={meals.snack2} />
-        <MealCard icon="🍲" label="Dinner" meal={meals.dinner} />
+        {(
+          [
+            ["breakfast", "🥣", "Breakfast"],
+            ["snack1", "🍎", "Mid-morning snack"],
+            ["lunch", "🍛", "Lunch"],
+            ["snack2", "🥤", "Evening snack"],
+            ["dinner", "🍲", "Dinner"],
+          ] as const
+        ).map(([slot, icon, label]) => (
+          <MealCard
+            key={slot}
+            icon={icon}
+            label={label}
+            meal={meals[slot]}
+            swap={{ userId: user.id, weekStartDate: weekStart.toISOString().slice(0, 10), dayIndex, slot }}
+          />
+        ))}
       </div>
     </div>
   );

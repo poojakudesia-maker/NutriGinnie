@@ -1,12 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useForm, Controller, type Resolver } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { completeProfileSchema, type CompleteProfileInput } from "@/lib/validation/schemas";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
+import { COMMON_TIMEZONES } from "@/lib/timezones";
 
 const MEDICAL_CONDITIONS = ["Diabetes", "Hypertension", "PCOS/PCOD", "Thyroid", "Heart Disease", "High Cholesterol"];
 const CUISINES = ["Indian", "South Indian", "North Indian", "Gujarati", "Punjabi", "Continental"];
@@ -30,6 +31,7 @@ export default function CompleteProfileForm({ userId }: { userId: string }) {
     handleSubmit,
     control,
     watch,
+    setValue,
     formState: { errors },
   } = useForm<CompleteProfileInput>({
     resolver: zodResolver(completeProfileSchema) as unknown as Resolver<CompleteProfileInput>,
@@ -42,10 +44,23 @@ export default function CompleteProfileForm({ userId }: { userId: string }) {
       cuisinePreference: ["Indian"],
       whatsappNumbers: [""],
       isGlp1: false,
+      calorieSource: "CALCULATED",
+      timezone: "Asia/Kolkata",
+      dispatchHour: 19,
     },
   });
 
   const isGlp1 = watch("isGlp1");
+  const calorieSource = watch("calorieSource");
+
+  useEffect(() => {
+    try {
+      const detected = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      if (detected) setValue("timezone", detected);
+    } catch {
+      // Intl unavailable — keep the Asia/Kolkata default.
+    }
+  }, [setValue]);
 
   const onSubmit = async (data: CompleteProfileInput) => {
     setSubmitting(true);
@@ -116,6 +131,45 @@ export default function CompleteProfileForm({ userId }: { userId: string }) {
             </select>
           </div>
         </div>
+      </Card>
+
+      <Card>
+        <h2 className="mb-1 text-base font-semibold text-charcoal">Calorie &amp; macro budget</h2>
+        <p className="mb-3 text-xs text-charcoal-muted">
+          Already have a target from your dietitian? Enter it directly — otherwise we&apos;ll calculate one from your
+          height/weight/activity above.
+        </p>
+        <div className="mb-3 flex gap-2">
+          <label className="flex flex-1 cursor-pointer items-center justify-center gap-1 rounded-xl border border-warm-border px-2 py-2 text-center text-sm has-[:checked]:border-orange has-[:checked]:bg-orange-light">
+            <input type="radio" value="CALCULATED" {...register("calorieSource")} className="hidden" />
+            Calculate for me
+          </label>
+          <label className="flex flex-1 cursor-pointer items-center justify-center gap-1 rounded-xl border border-warm-border px-2 py-2 text-center text-sm has-[:checked]:border-orange has-[:checked]:bg-orange-light">
+            <input type="radio" value="MANUAL" {...register("calorieSource")} className="hidden" />
+            I know my budget
+          </label>
+        </div>
+        {calorieSource === "MANUAL" && (
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className={labelClass}>Calories/day</label>
+              <input type="number" className={inputClass} {...register("manualCalorieTarget")} />
+            </div>
+            <div>
+              <label className={labelClass}>Protein (g)</label>
+              <input type="number" className={inputClass} {...register("manualProteinTargetG")} />
+            </div>
+            <div>
+              <label className={labelClass}>Carbs (g, optional)</label>
+              <input type="number" className={inputClass} {...register("manualCarbTargetG")} />
+            </div>
+            <div>
+              <label className={labelClass}>Fat (g, optional)</label>
+              <input type="number" className={inputClass} {...register("manualFatTargetG")} />
+            </div>
+            {errors.manualCalorieTarget && <p className={`${errorClass} col-span-2`}>{errors.manualCalorieTarget.message}</p>}
+          </div>
+        )}
       </Card>
 
       <Card>
@@ -231,6 +285,44 @@ export default function CompleteProfileForm({ userId }: { userId: string }) {
           <input className={inputClass} placeholder="+91XXXXXXXXXX (optional)" {...register("whatsappNumbers.1")} />
         </div>
         {errors.whatsappNumbers && <p className={errorClass}>{errors.whatsappNumbers.message as string}</p>}
+      </Card>
+
+      <Card>
+        <h2 className="mb-1 text-base font-semibold text-charcoal">Delivery preferences</h2>
+        <p className="mb-3 text-xs text-charcoal-muted">
+          Your next day&apos;s diet plan &amp; grocery list arrive on WhatsApp at this local time every night.
+        </p>
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className={labelClass}>Time</label>
+            <select className={inputClass} {...register("dispatchHour")}>
+              {Array.from({ length: 24 }, (_, h) => (
+                <option key={h} value={h}>
+                  {h === 0 ? "12 AM" : h < 12 ? `${h} AM` : h === 12 ? "12 PM" : `${h - 12} PM`}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className={labelClass}>Timezone</label>
+            <Controller
+              control={control}
+              name="timezone"
+              render={({ field }) => (
+                <select className={inputClass} {...field}>
+                  {!COMMON_TIMEZONES.includes(field.value as (typeof COMMON_TIMEZONES)[number]) && (
+                    <option value={field.value}>{field.value} (detected)</option>
+                  )}
+                  {COMMON_TIMEZONES.map((tz) => (
+                    <option key={tz} value={tz}>
+                      {tz}
+                    </option>
+                  ))}
+                </select>
+              )}
+            />
+          </div>
+        </div>
       </Card>
 
       {serverError && <p className="text-sm text-red-600">{serverError}</p>}
