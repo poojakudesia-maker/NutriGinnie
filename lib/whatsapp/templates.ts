@@ -4,24 +4,6 @@ function fmt(n: number): string {
   return Math.round(n).toString();
 }
 
-/** Formatted text version of the daily diet plan, sent every morning at 8 AM. */
-export function formatDietPlanMessage(userName: string, day: DayPlan): string {
-  const { meals } = day;
-  return [
-    `Good morning, ${userName}! 🌞 Here's your diet plan for *${day.dayLabel}*:`,
-    ``,
-    `🥣 *Breakfast*: ${meals.breakfast.name} (${fmt(meals.breakfast.calories)} kcal, ${fmt(meals.breakfast.proteinG)}g protein)`,
-    `🍎 *Mid-morning snack*: ${meals.snack1.name} (${fmt(meals.snack1.calories)} kcal)`,
-    `🍛 *Lunch*: ${meals.lunch.name} (${fmt(meals.lunch.calories)} kcal, ${fmt(meals.lunch.proteinG)}g protein)`,
-    `🥤 *Evening snack*: ${meals.snack2.name} (${fmt(meals.snack2.calories)} kcal)`,
-    `🍲 *Dinner*: ${meals.dinner.name} (${fmt(meals.dinner.calories)} kcal, ${fmt(meals.dinner.proteinG)}g protein)`,
-    ``,
-    `📊 Total: *${fmt(day.totalCalories)} kcal* | Protein: *${fmt(day.totalProteinG)}g* | Carbs: ${fmt(day.totalCarbsG)}g | Fat: ${fmt(day.totalFatG)}g`,
-    ``,
-    `Stay consistent — you've got this! 💪`,
-  ].join("\n");
-}
-
 /** Short (30-60s when spoken) friendly script for the TTS voice note. */
 export function formatDietPlanVoiceScript(userName: string, day: DayPlan): string {
   const { meals } = day;

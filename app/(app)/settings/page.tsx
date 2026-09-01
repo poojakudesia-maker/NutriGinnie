@@ -26,7 +26,7 @@ export default async function SettingsPage() {
       />
       <PdfUploadForm userId={user.id} />
       <RecipeForm userId={user.id} />
-      <RecipeList recipes={recipes} title={`Your saved recipes (${recipes.length})`} />
+      <RecipeList userId={user.id} recipes={recipes} title={`Your saved recipes (${recipes.length})`} />
 
       <LogoutButton />
 

@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
+import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { sendWhatsAppSchema } from "@/lib/validation/schemas";
-import { sendDietPlanToUser, sendGroceryListToUser } from "@/lib/whatsapp/dispatch";
+import { sendNightlyPlanToUser, sendGroceryListToUser } from "@/lib/whatsapp/dispatch";
 import { buildGroceryListForDay } from "@/lib/grocery/aggregator";
 import { weekStartDate, dayIndexFromDate, DAY_LABELS } from "@/lib/utils";
 import type { DayPlan } from "@/lib/ai/types";
@@ -45,7 +46,15 @@ export async function POST(req: NextRequest) {
   };
 
   if (type === "DIET") {
-    await sendDietPlanToUser(user, dayPlan);
+    // "Send now" on the plan page sends the same combined diet + grocery message the nightly
+    // cron does, for this specific day, so manual testing matches what users actually receive.
+    const items = buildGroceryListForDay(dayPlan);
+    await prisma.grocery.upsert({
+      where: { userId_forDate: { userId, forDate: targetDate } },
+      update: { items: items as unknown as Prisma.InputJsonValue },
+      create: { userId, forDate: targetDate, items: items as unknown as Prisma.InputJsonValue },
+    });
+    await sendNightlyPlanToUser(user, dayPlan, items);
   } else {
     const items = buildGroceryListForDay(dayPlan);
     const nextDayLabel = DAY_LABELS[(dayIndex + 1) % 7];

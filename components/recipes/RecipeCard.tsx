@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import type { StructuredIngredient } from "@/lib/ai/types";
 
 const MEAL_TYPE_LABEL: Record<string, string> = {
@@ -21,6 +22,7 @@ const SOURCE_LABEL: Record<string, string> = {
 
 export interface RecipeCardData {
   id: string;
+  userId: string;
   name: string;
   mealType: string | null;
   source: string;
@@ -36,24 +38,49 @@ export interface RecipeCardData {
 }
 
 export function RecipeCard({ recipe }: { recipe: RecipeCardData }) {
+  const router = useRouter();
   const [open, setOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const ingredients = (recipe.ingredients as StructuredIngredient[] | null) ?? [];
+
+  const deleteRecipe = async () => {
+    if (!confirm(`Remove "${recipe.name}"? This can't be undone.`)) return;
+    setDeleting(true);
+    try {
+      const res = await fetch(`/api/recipes/${recipe.id}?userId=${recipe.userId}`, { method: "DELETE" });
+      if (res.ok) router.refresh();
+      else setDeleting(false);
+    } catch {
+      setDeleting(false);
+    }
+  };
 
   return (
     <div className="border-b border-warm-border py-2 last:border-0">
-      <button type="button" onClick={() => setOpen((v) => !v)} className="flex w-full items-center justify-between text-left">
-        <div>
-          <p className="text-sm font-medium text-charcoal">{recipe.name}</p>
-          <p className="text-xs text-charcoal-muted">
-            {recipe.mealType ? MEAL_TYPE_LABEL[recipe.mealType] : "Unclassified"} · {SOURCE_LABEL[recipe.source] ?? recipe.source}
-            {recipe.aiEstimated ? " · AI-estimated nutrition" : ""}
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <span className="text-xs text-charcoal-muted">{recipe.calories ? `${Math.round(recipe.calories)} kcal` : "—"}</span>
-          <span className="text-orange">{open ? "▲" : "▼"}</span>
-        </div>
-      </button>
+      <div className="flex w-full items-center justify-between">
+        <button type="button" onClick={() => setOpen((v) => !v)} className="flex flex-1 items-center justify-between text-left">
+          <div>
+            <p className="text-sm font-medium text-charcoal">{recipe.name}</p>
+            <p className="text-xs text-charcoal-muted">
+              {recipe.mealType ? MEAL_TYPE_LABEL[recipe.mealType] : "Unclassified"} · {SOURCE_LABEL[recipe.source] ?? recipe.source}
+              {recipe.aiEstimated ? " · AI-estimated nutrition" : ""}
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-charcoal-muted">{recipe.calories ? `${Math.round(recipe.calories)} kcal` : "—"}</span>
+            <span className="text-orange">{open ? "▲" : "▼"}</span>
+          </div>
+        </button>
+        <button
+          type="button"
+          onClick={deleteRecipe}
+          disabled={deleting}
+          aria-label={`Delete ${recipe.name}`}
+          className="ml-2 shrink-0 rounded-lg px-1.5 py-1 text-charcoal-muted hover:bg-red-50 hover:text-red-600 disabled:opacity-50"
+        >
+          🗑️
+        </button>
+      </div>
 
       {open && (
         <div className="mt-2 rounded-xl bg-cream p-3 text-xs text-charcoal-muted">

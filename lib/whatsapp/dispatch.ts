@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { sendWhatsAppMessage, sendWhatsAppVoiceNote } from "./client";
-import { formatDietPlanMessage, formatGroceryMessage, formatDietAndGroceryMessage } from "./templates";
+import { formatGroceryMessage, formatDietAndGroceryMessage } from "./templates";
 import type { DayPlan, GroceryItem } from "@/lib/ai/types";
 import type { User } from "@prisma/client";
 
@@ -8,21 +8,6 @@ function getAppUrl(): string {
   const url = process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL;
   if (!url) throw new Error("APP_URL (public base URL) is not set — required to build the TTS voice-note link.");
   return url.replace(/\/$/, "");
-}
-
-/** Sends the daily diet plan (text + voice note) to every WhatsApp number on the user's account. */
-export async function sendDietPlanToUser(user: User, day: DayPlan): Promise<void> {
-  if (user.whatsappNumbers.length === 0) return;
-
-  const text = formatDietPlanMessage(user.name, day);
-  const voiceUrl = `${getAppUrl()}/api/tts/voice?userId=${user.id}&dayIndex=${day.dayIndex}`;
-
-  for (const phoneNumber of user.whatsappNumbers) {
-    await logAndSend(user.id, phoneNumber, "DIET_TEXT", text, () => sendWhatsAppMessage(phoneNumber, text));
-    await logAndSend(user.id, phoneNumber, "DIET_VOICE", "[voice note]", () =>
-      sendWhatsAppVoiceNote(phoneNumber, voiceUrl, "🎧 Your daily diet plan, in audio")
-    );
-  }
 }
 
 /** Sends the next day's grocery list to every WhatsApp number on the user's account. */

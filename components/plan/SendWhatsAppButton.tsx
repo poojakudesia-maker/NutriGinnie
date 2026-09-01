@@ -46,7 +46,7 @@ export default function SendWhatsAppButton({
   return (
     <div>
       <Button variant="secondary" onClick={send} disabled={status === "sending"}>
-        {status === "sending" ? "Sending…" : status === "sent" ? "Sent ✓" : `Send ${type === "DIET" ? "diet plan" : "grocery list"} now`}
+        {status === "sending" ? "Sending…" : status === "sent" ? "Sent ✓" : `Send ${type === "DIET" ? "plan + groceries" : "grocery list"} now`}
       </Button>
       {message && <p className="mt-2 text-xs text-red-600">{message}</p>}
     </div>

@@ -74,7 +74,7 @@ export default async function DashboardPage() {
 
       <PdfUploadForm userId={user.id} />
       <RecipeForm userId={user.id} />
-      <RecipeList recipes={recipes} />
+      <RecipeList userId={user.id} recipes={recipes} />
 
       {mealPlanCount === 0 ? (
         <Card className="flex flex-col items-start gap-2 bg-orange-light">

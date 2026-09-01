@@ -14,6 +14,17 @@ export async function GET(req: NextRequest) {
   return NextResponse.json({ recipes });
 }
 
+/** DELETE /api/recipes?userId=... — clear every saved recipe for the user (e.g. to start over
+ *  with a fresh diet-plan upload instead of mixing in the old one). Existing MealPlan/Grocery
+ *  rows are left as-is; regenerate the weekly plan afterward to pick up the change. */
+export async function DELETE(req: NextRequest) {
+  const userId = req.nextUrl.searchParams.get("userId");
+  if (!userId) return NextResponse.json({ error: "userId is required" }, { status: 400 });
+
+  const { count } = await prisma.recipe.deleteMany({ where: { userId } });
+  return NextResponse.json({ deleted: count });
+}
+
 interface EntryResult {
   index: number;
   ok: boolean;
