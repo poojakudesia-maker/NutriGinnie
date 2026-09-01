@@ -251,9 +251,14 @@ get their reminder at their own 7 PM, independent of each other and of the serve
   plan only allows daily-cadence cron jobs — this every-30-minutes schedule needs a Pro plan to
   actually fire that often. Set `CRON_SECRET` in your Vercel project env vars — Vercel automatically
   sends it as `Authorization: Bearer <CRON_SECRET>`, which `lib/cron/auth.ts` verifies.
-- **Railway / Render / Hobby-tier Vercel (no frequent native cron):** run `npm run worker` as a
-  second always-on service/process instead. It hits the same `/api/cron/nightly-plan` route every 30
-  minutes using `node-cron`, giving you real per-timezone delivery regardless of platform.
+- **Railway / Render / Hobby-tier Vercel / running locally (no frequent native cron):** run
+  `npm run worker` as a second always-on process instead — e.g. a second terminal tab alongside
+  `npm run dev` when testing locally. It hits the same `/api/cron/nightly-plan` route every 30
+  minutes using `node-cron` (and once immediately on startup, so you get instant feedback instead
+  of waiting up to 30 minutes), giving you real per-timezone delivery regardless of platform.
+  It loads `.env` itself via Node's `--env-file` flag (needs Node 20.6+) since — unlike `next dev` —
+  a standalone script doesn't load `.env` automatically; if it exits immediately with "APP_URL and
+  CRON_SECRET must be set", check your Node version with `node -v`.
 
 ## Deployment
 

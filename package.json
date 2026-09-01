@@ -12,7 +12,7 @@
     "db:migrate": "prisma migrate dev",
     "db:deploy": "prisma migrate deploy",
     "db:studio": "prisma studio",
-    "worker": "tsx scripts/scheduler.ts"
+    "worker": "tsx --env-file=.env scripts/scheduler.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.115.0",

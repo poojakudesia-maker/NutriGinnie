@@ -40,4 +40,8 @@ async function trigger(path: string) {
 // whoever's local time currently falls in their configured window.
 cron.schedule("*/30 * * * *", () => trigger("/api/cron/nightly-plan"), { timezone: "UTC" });
 
-console.log("NutriPing scheduler running: nightly-plan every 30 min (per-user local-time diet + grocery send).");
+console.log(`NutriPing scheduler running (APP_URL=${APP_URL}): nightly-plan every 30 min (per-user local-time diet + grocery send).`);
+
+// Fire once immediately on startup too, so you get instant feedback (sent/skipped/outsideWindow)
+// instead of waiting up to 30 minutes to find out whether this is even reaching the app.
+trigger("/api/cron/nightly-plan");
