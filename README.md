@@ -247,10 +247,13 @@ user's *own* current local time against their *own* configured hour and only sen
 currently in that half-hour window, so a user in `America/New_York` and one in `Asia/Kolkata` both
 get their reminder at their own 7 PM, independent of each other and of the server's clock.
 
-- **Vercel:** `vercel.json` declares a `*/30 * * * *` cron schedule. **Note:** Vercel's Hobby (free)
-  plan only allows daily-cadence cron jobs — this every-30-minutes schedule needs a Pro plan to
-  actually fire that often. Set `CRON_SECRET` in your Vercel project env vars — Vercel automatically
-  sends it as `Authorization: Bearer <CRON_SECRET>`, which `lib/cron/auth.ts` verifies.
+- **Vercel:** `vercel.json` currently declares `"30 12 * * *"` — once daily at 12:30 UTC (6:00 PM
+  IST), which fits Vercel's **Hobby (free) plan** limit of one cron firing per day. This only
+  reaches users whose own `timezone`/`dispatchHour` land in that same window — fine for a small,
+  same-timezone user base, but if you add users in other timezones (or change the delivery hour),
+  update this line to match, or upgrade to Vercel **Pro** and change it back to `"*/30 * * * *"`
+  for real per-timezone delivery. Set `CRON_SECRET` in your Vercel project env vars — Vercel
+  automatically sends it as `Authorization: Bearer <CRON_SECRET>`, which `lib/cron/auth.ts` verifies.
 - **Railway / Render / Hobby-tier Vercel / running locally (no frequent native cron):** run
   `npm run worker` as a second always-on process instead — e.g. a second terminal tab alongside
   `npm run dev` when testing locally. It hits the same `/api/cron/nightly-plan` route every 30
