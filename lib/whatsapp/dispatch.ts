@@ -10,6 +10,13 @@ function getAppUrl(): string {
   return url.replace(/\/$/, "");
 }
 
+/** Voice notes are Twilio-only (Meta's Cloud API can't send freeform audio outside an active chat
+ *  session), so they're skipped entirely — not logged as a nightly failure — when Twilio isn't
+ *  configured, since that's an expected, permanent state for a Meta-only setup rather than an error. */
+function voiceNotesConfigured(): boolean {
+  return !!(process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN && process.env.TWILIO_WHATSAPP_FROM);
+}
+
 /** Sends the next day's grocery list to every WhatsApp number on the user's account. */
 export async function sendGroceryListToUser(user: User, forDayLabel: string, items: GroceryItem[]): Promise<void> {
   if (user.whatsappNumbers.length === 0) return;
@@ -29,13 +36,16 @@ export async function sendNightlyPlanToUser(user: User, day: DayPlan, groceryIte
   if (user.whatsappNumbers.length === 0) return;
 
   const text = formatDietAndGroceryMessage(user.name, day, groceryItems);
-  const voiceUrl = `${getAppUrl()}/api/tts/voice?userId=${user.id}&dayIndex=${day.dayIndex}`;
+  const sendVoice = voiceNotesConfigured();
+  const voiceUrl = sendVoice ? `${getAppUrl()}/api/tts/voice?userId=${user.id}&dayIndex=${day.dayIndex}` : null;
 
   for (const phoneNumber of user.whatsappNumbers) {
     await logAndSend(user.id, phoneNumber, "DIET_TEXT", text, () => sendWhatsAppMessage(phoneNumber, text));
-    await logAndSend(user.id, phoneNumber, "DIET_VOICE", "[voice note]", () =>
-      sendWhatsAppVoiceNote(phoneNumber, voiceUrl, "🎧 Tomorrow's diet plan, in audio")
-    );
+    if (voiceUrl) {
+      await logAndSend(user.id, phoneNumber, "DIET_VOICE", "[voice note]", () =>
+        sendWhatsAppVoiceNote(phoneNumber, voiceUrl, "🎧 Tomorrow's diet plan, in audio")
+      );
+    }
   }
 }
 

@@ -9,7 +9,7 @@ reminders (text + voice) for the meal plan and grocery list.
 - **Frontend:** Next.js 16 (App Router), TypeScript, Tailwind CSS v4, installable/offline-capable PWA
 - **Backend:** Next.js Route Handlers (Node.js), PostgreSQL via Prisma ORM
 - **AI:** Anthropic Claude — PDF parsing, recipe structuring, diet plan generation
-- **Messaging:** Twilio WhatsApp API (text + voice notes), Meta Cloud API as an alternative
+- **Messaging:** Meta WhatsApp Cloud API (default, text), Twilio as an alternative/for voice notes
 - **Voice:** ElevenLabs TTS (Google Cloud TTS as a fallback)
 - **Scheduler:** Vercel Cron (`vercel.json`) or a standalone `node-cron` worker for Railway/Render
 
@@ -43,8 +43,8 @@ app/
     meal-log/               Record what was actually eaten for a slot (confirm-planned / photo / custom text)
     glp1-log/                GLP-1 side-effect check-in entries
     whatsapp/send/          Manual "send now" trigger (diet plan or grocery list)
-    whatsapp/webhook/       Twilio delivery-status callback
-    whatsapp/inbound/       Twilio inbound-message webhook — reply with a photo to log a meal
+    whatsapp/webhook/       Meta delivery-status webhook (also handles the verification handshake)
+    whatsapp/inbound/       Meta inbound-message webhook — reply with a photo to log a meal
     tts/voice/              Public audio endpoint Twilio fetches for the voice note
     cron/nightly-plan/      Per-user nightly job: sends tomorrow's diet plan + grocery list at each
                             user's own configured local time
@@ -143,10 +143,11 @@ vercel.json               Vercel Cron schedule (every 30 min — see "Scheduler"
    check-in form (nausea 0-5, hydration, protein-target-hit) is shown too, backed by a new
    `Glp1Log` model.
 7. **WhatsApp**: `lib/whatsapp/dispatch.ts` sends the formatted text (`lib/whatsapp/templates.ts`)
-   via a provider-aware `sendWhatsAppMessage()` (`lib/whatsapp/client.ts` — Twilio freeform by
-   default, or an approved Meta Cloud **Utility template** when `WHATSAPP_PROVIDER=meta_template` is
-   set, since WhatsApp policy only allows freeform business-initiated text within a 24h reply
-   window), plus a voice note whose media URL points at `/api/tts/voice` (generated on-demand). The
+   via a provider-aware `sendWhatsAppMessage()` (`lib/whatsapp/client.ts` — an approved Meta Cloud
+   **Utility template** by default, or Twilio freeform when `WHATSAPP_PROVIDER=twilio` is set, since
+   WhatsApp policy only allows freeform business-initiated text within a 24h reply window), plus a
+   voice note (Twilio-only, skipped if Twilio isn't configured) whose media URL points at
+   `/api/tts/voice` (generated on-demand). The
    nightly cron job (`/api/cron/nightly-plan`) runs every 30 minutes and, for each user, checks
    whether **their own** local time (per `User.timezone`) currently falls in **their own**
    configured `dispatchHour` window (default 7 PM, editable on Settings or at onboarding, alongside
@@ -211,32 +212,46 @@ parsing, and diet plan generation return a clear JSON error instead of crashing 
 A brand-new Google sign-in only has an email and name — it's routed to
 `/onboarding/complete-profile` to fill in the rest before the dashboard unlocks.
 
-## WhatsApp integration steps (Twilio)
+## WhatsApp integration steps (Meta Cloud API — default)
 
-1. Create a Twilio account and open the [WhatsApp sandbox](https://console.twilio.com/us1/develop/sms/try-it-out/whatsapp-learn) (or apply for a production WhatsApp Business sender for real users).
-2. Copy `Account SID` and `Auth Token` into `TWILIO_ACCOUNT_SID` / `TWILIO_AUTH_TOKEN`.
-3. Set `TWILIO_WHATSAPP_FROM` to the sandbox number shown in the console (e.g. `+14155238886`) or
-   your approved sender.
-4. In the Twilio console, set the WhatsApp sender's **status callback URL** to
-   `https://<your-app>/api/whatsapp/webhook` so delivery/read receipts update `WhatsAppLog` rows.
-5. Each user must send the sandbox's join code (e.g. `join <word-pair>`) once from WhatsApp before
-   Twilio is allowed to message them — a sandbox-only requirement, not needed on a production sender.
-6. Add each user's number (with country code) from the app's Settings screen. Test with
-   "Send now" on a daily plan page before relying on the 7 PM nightly cron job.
+WhatsApp Business policy only allows freeform business-initiated text within a 24-hour window
+after the user last messaged in. The nightly reminder is proactive — nobody necessarily replied
+first — so it needs a pre-approved **Utility-category template**, or it gets rejected outright.
+This applies to Meta's API just as much as Twilio's; switching providers doesn't remove this step.
 
-7. **Inbound photo replies:** in the same Twilio console, set the sender's **"A message comes in"**
-   webhook to `https://<your-app>/api/whatsapp/inbound` so a user can reply to their reminder with a
-   photo of their plate to log it automatically.
+1. Create a Meta Developer app at [developers.facebook.com](https://developers.facebook.com) → **My
+   Apps → Create App** → type "Other" → use case "Business", then add the **WhatsApp** product.
+2. On WhatsApp → API Setup, add your WhatsApp number(s) as **test recipients** (verify each via the
+   OTP WhatsApp sends) — required until you complete Meta Business Verification for production use.
+3. Get a **permanent token** (the default one shown expires in 24h): Business Suite → Business
+   Settings → Users → System Users → add one → assign it your app + WhatsApp Business Account →
+   Generate Token with `whatsapp_business_messaging` + `whatsapp_business_management` permissions.
+   This is `META_WHATSAPP_TOKEN`; the phone number ID from step 2 is `META_PHONE_NUMBER_ID`.
+4. Get your **App Secret**: App dashboard → Settings → Basic → Show App Secret → this is
+   `META_APP_SECRET` (used to verify incoming webhook requests are really from Meta).
+5. Set up the webhook: WhatsApp → Configuration → Webhook → Callback URL
+   `https://<your-app>/api/whatsapp/inbound`, Verify Token = any string you make up (also set as
+   `META_WEBHOOK_VERIFY_TOKEN`) → **Verify and Save** → subscribe to the **`messages`** field. This
+   single subscription covers both delivery-status updates (`app/api/whatsapp/webhook`) and inbound
+   photo replies (`app/api/whatsapp/inbound`) — Meta sends both event types to whichever URL you
+   configure per-field, so point both routes' webhook fields at their respective URLs above.
+6. Create and get your **message template** approved: Business Suite → WhatsApp Manager → Message
+   Templates → Create → category **Utility**, body = a single `{{1}}` variable (e.g. `"Here's your
+   plan for tomorrow: {{1}}"`) → once approved, its name is `WHATSAPP_TEMPLATE_NAME`.
+7. Add each user's number (with country code) from the app's Settings screen. Test with "Send now"
+   on a daily plan page before relying on the nightly cron.
 
-**Going to production — WhatsApp template compliance:** WhatsApp Business policy only allows
-freeform business-initiated text within a 24-hour window after the user last messaged in. The
-nightly reminder is proactive and nobody necessarily replied first, so outside the Twilio sandbox
-it needs a pre-approved **Utility-category template** instead, or it will simply get rejected. To
-switch: create a template in Meta Business Manager whose body is a single `{{1}}` variable (e.g.
-`"Here's your plan for tomorrow: {{1}}"`), wait for approval, then set `WHATSAPP_PROVIDER=meta_template`,
-`WHATSAPP_TEMPLATE_NAME=<your template name>`, and `META_WHATSAPP_TOKEN` / `META_PHONE_NUMBER_ID`.
-`lib/whatsapp/client.ts`'s `sendWhatsAppMessage()` picks the right transport automatically based on
-`WHATSAPP_PROVIDER` — no other code changes needed. (Voice notes still go via Twilio either way.)
+**Voice notes** need a separate note: Meta's Cloud API can't send freeform audio outside an active
+chat session (same 24h-window rule as text, and there's no simple non-template way around it for
+media). Voice notes therefore stay on **Twilio** even with Meta as the default text provider — set
+`TWILIO_ACCOUNT_SID` / `TWILIO_AUTH_TOKEN` / `TWILIO_WHATSAPP_FROM` if you want them; leave them
+blank to just skip voice notes (the nightly text + grocery message still sends fine via Meta alone).
+
+**Switching back to Twilio for text too:** set `WHATSAPP_PROVIDER=twilio` — `sendWhatsAppMessage()`
+in `lib/whatsapp/client.ts` picks the transport automatically, no other code changes needed. Note
+this uses Twilio's plain freeform send, which has the same 24h-window restriction in production
+(a Twilio Content Template would be needed there too — not implemented, since Meta is now the
+default production path).
 
 ## Scheduler
 
