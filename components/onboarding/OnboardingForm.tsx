@@ -302,10 +302,16 @@ export default function OnboardingForm() {
         <h2 className="mb-1 text-base font-semibold text-charcoal">WhatsApp numbers</h2>
         <p className="mb-3 text-xs text-charcoal-muted">Add up to 2 numbers with country code, e.g. +919876543210</p>
         <div className="space-y-2">
-          <input className={inputClass} placeholder="+91XXXXXXXXXX" {...register("whatsappNumbers.0")} />
-          <input className={inputClass} placeholder="+91XXXXXXXXXX (optional)" {...register("whatsappNumbers.1")} />
+          <div>
+            <input className={inputClass} placeholder="+91XXXXXXXXXX" {...register("whatsappNumbers.0")} />
+            {errors.whatsappNumbers?.[0] && <p className={errorClass}>{errors.whatsappNumbers[0]?.message}</p>}
+          </div>
+          <div>
+            <input className={inputClass} placeholder="+91XXXXXXXXXX (optional)" {...register("whatsappNumbers.1")} />
+            {errors.whatsappNumbers?.[1] && <p className={errorClass}>{errors.whatsappNumbers[1]?.message}</p>}
+          </div>
         </div>
-        {errors.whatsappNumbers && <p className={errorClass}>{errors.whatsappNumbers.message as string}</p>}
+        {errors.whatsappNumbers?.message && <p className={errorClass}>{errors.whatsappNumbers.message as string}</p>}
       </Card>
 
       <Card>
