@@ -64,8 +64,12 @@ export default function RecipeForm({ userId }: { userId: string }) {
       setMessage(summary);
       setEntries([emptyEntry()]);
       router.refresh();
-    } catch {
-      setMessage("Network error. Please try again.");
+    } catch (err) {
+      setMessage(
+        err instanceof SyntaxError
+          ? "This took too long to process and the server timed out. Try fewer entries at once, or try again."
+          : "Network error. Please check your connection and try again."
+      );
     } finally {
       setSaving(false);
     }

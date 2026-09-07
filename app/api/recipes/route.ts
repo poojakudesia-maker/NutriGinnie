@@ -5,6 +5,10 @@ import { rawRecipeBatchSchema, detectVideoPlatform } from "@/lib/validation/sche
 import { parseRecipeFromVideoCaption, parseRecipesFromText } from "@/lib/ai/recipeParser";
 import { fetchYouTubeTranscript } from "@/lib/ai/youtubeTranscript";
 
+// Vercel's platform-default timeout (10s on Hobby) is too short for multiple Claude parsing
+// calls across a batch of entries; without this the function gets killed mid-request.
+export const maxDuration = 60;
+
 /** GET /api/recipes?userId=... — list a user's saved recipes. */
 export async function GET(req: NextRequest) {
   const userId = req.nextUrl.searchParams.get("userId");

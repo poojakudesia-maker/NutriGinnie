@@ -52,8 +52,15 @@ export default function PdfUploadForm({ userId }: { userId: string }) {
         rawInputPreview: json.rawInputPreview,
         items: json.recipes.map((r: StructuredRecipe) => ({ ...r, included: true })),
       });
-    } catch {
-      setMessage("Network error. Please try again.");
+    } catch (err) {
+      // A SyntaxError here means we got a response but it wasn't valid JSON — almost always a
+      // platform-level timeout on a large/complex file, not an actual network failure, since a
+      // real connection drop throws before any response body exists to fail parsing.
+      setMessage(
+        err instanceof SyntaxError
+          ? "This took too long to process (large or complex file) and the server timed out. Try a smaller file, or split it into parts."
+          : "Network error. Please check your connection and try again."
+      );
     } finally {
       setUploading(false);
       if (fileRef.current) fileRef.current.value = "";

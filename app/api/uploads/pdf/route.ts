@@ -5,6 +5,11 @@ import { extractDocxText } from "@/lib/ai/docParser";
 import { parseRecipesFromText, parseRecipesFromPdfDocument } from "@/lib/ai/recipeParser";
 import { toErrorResponse } from "@/lib/api/errors";
 
+// Without this, Vercel falls back to its platform default (10s on Hobby), which a large PDF's
+// Claude parsing call easily exceeds — the function gets killed mid-request and returns a
+// non-JSON platform error, which the client then (confusingly) reports as "Network error".
+export const maxDuration = 60;
+
 const MAX_FILE_BYTES = 10 * 1024 * 1024; // 10MB
 
 const DOCX_MIME = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";

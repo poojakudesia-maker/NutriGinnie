@@ -6,6 +6,9 @@ import { weekStartDate, dayIndexFromDate } from "@/lib/utils";
 import { toErrorResponse } from "@/lib/api/errors";
 import type { DayPlan, MealEntry } from "@/lib/ai/types";
 
+// Vercel's platform-default timeout (10s on Hobby) is too short for the CUSTOM/PHOTO Claude calls.
+export const maxDuration = 60;
+
 const SLOT_TO_MEAL_KEY: Record<string, keyof DayPlan["meals"]> = {
   BREAKFAST: "breakfast",
   SNACK1: "snack1",

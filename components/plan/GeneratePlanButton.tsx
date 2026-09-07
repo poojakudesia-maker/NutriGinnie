@@ -35,8 +35,12 @@ export default function GeneratePlanButton({
       }
       setWarnings(json.warnings ?? []);
       router.refresh();
-    } catch {
-      setError("Network error. Please try again.");
+    } catch (err) {
+      setError(
+        err instanceof SyntaxError
+          ? "This took too long and the server timed out generating your plan. Please try again."
+          : "Network error. Please check your connection and try again."
+      );
     } finally {
       setLoading(null);
     }

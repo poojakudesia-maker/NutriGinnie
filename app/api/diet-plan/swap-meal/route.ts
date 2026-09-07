@@ -7,6 +7,9 @@ import { generateSingleMealAlternative } from "@/lib/ai/dietPlanGenerator";
 import { toErrorResponse } from "@/lib/api/errors";
 import type { DayPlan, MealEntry } from "@/lib/ai/types";
 
+// Vercel's platform-default timeout (10s on Hobby) is too short for the AI-fallback path.
+export const maxDuration = 60;
+
 const SLOT_MEAL_TYPE: Record<string, RecipeMealType> = {
   breakfast: "BREAKFAST",
   snack1: "SNACK",

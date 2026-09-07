@@ -8,6 +8,9 @@ import { weekStartDate } from "@/lib/utils";
 import { toErrorResponse } from "@/lib/api/errors";
 import type { WeekPlan } from "@/lib/ai/types";
 
+// Vercel's platform-default timeout (10s on Hobby) is too short for the AI-generation path.
+export const maxDuration = 60;
+
 /** POST /api/diet-plan/generate — { userId } -> generates and persists this week's 7-day plan. */
 export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => null);

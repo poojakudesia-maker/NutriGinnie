@@ -6,6 +6,10 @@ import { verifyMetaWebhookHandshake, verifyMetaSignature, extractMetaInboundMess
 import { localDateUTCMidnight, localDateParts } from "@/lib/utils";
 import type { MealLogSlot } from "@prisma/client";
 
+// Vercel's platform-default timeout (10s on Hobby) is too short for the Claude vision call on a
+// photo reply.
+export const maxDuration = 60;
+
 /** GET /api/whatsapp/inbound — Meta's one-time webhook verification handshake (App Dashboard ->
  *  WhatsApp -> Configuration -> Webhook -> Verify and Save calls this). */
 export async function GET(req: NextRequest) {
