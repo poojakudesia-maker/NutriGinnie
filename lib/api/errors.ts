@@ -20,6 +20,7 @@ export function toErrorResponse(err: unknown, fallback: string, status = 500) {
     );
   }
 
+  console.error(fallback, err);
   const message = err instanceof Error ? err.message : fallback;
   return NextResponse.json({ error: message || fallback }, { status });
 }

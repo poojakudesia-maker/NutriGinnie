@@ -22,6 +22,19 @@ const DOCX_MIME = "application/vnd.openxmlformats-officedocument.wordprocessingm
  * /api/uploads/pdf/confirm to actually persist them.
  */
 export async function POST(req: NextRequest) {
+  // A last-resort safety net: whatever fails inside here (including something unexpected we
+  // didn't anticipate), this always returns valid JSON rather than letting an uncaught exception
+  // fall through to Next.js's own non-JSON error page — the client can't tell "the network is
+  // actually down" apart from "the server returned an HTML error page" otherwise.
+  try {
+    return await handleUpload(req);
+  } catch (err) {
+    console.error("Unexpected error in /api/uploads/pdf:", err);
+    return toErrorResponse(err, "Something went wrong processing this file.");
+  }
+}
+
+async function handleUpload(req: NextRequest) {
   const form = await req.formData().catch(() => null);
   if (!form) return NextResponse.json({ error: "Expected multipart/form-data" }, { status: 400 });
 
@@ -52,6 +65,7 @@ export async function POST(req: NextRequest) {
   try {
     text = isPdf ? await extractPdfText(buffer) : await extractDocxText(buffer);
   } catch (err) {
+    console.error("Document text extraction failed:", err);
     return NextResponse.json({ error: (err as Error).message }, { status: 422 });
   }
 
