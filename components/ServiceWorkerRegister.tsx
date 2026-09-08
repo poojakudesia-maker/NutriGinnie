@@ -20,6 +20,16 @@ export default function ServiceWorkerRegister() {
       navigator.serviceWorker.register("/sw.js").catch((err) => {
         console.error("Service worker registration failed:", err);
       });
+
+      // Reload once when a newly-deployed service worker takes over, so a user who already had
+      // the app open picks up a fix/update on their very next action instead of continuing to run
+      // whatever code was loaded at page-open time.
+      let reloaded = false;
+      navigator.serviceWorker.addEventListener("controllerchange", () => {
+        if (reloaded) return;
+        reloaded = true;
+        window.location.reload();
+      });
     } else {
       navigator.serviceWorker.getRegistrations().then((registrations) => {
         for (const registration of registrations) registration.unregister();

@@ -1,6 +1,6 @@
 // NutriPing service worker: app-shell caching + offline access to the
 // last-loaded diet plan / grocery list pages and their API responses.
-const CACHE_VERSION = "nutriping-v1";
+const CACHE_VERSION = "nutriping-v2";
 const APP_SHELL_CACHE = `${CACHE_VERSION}-shell`;
 const API_CACHE = `${CACHE_VERSION}-api`;
 
@@ -38,9 +38,12 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // Navigations and static app-shell assets: stale-while-revalidate.
+  // Navigations and static app-shell assets: network-first, so a page always shows the latest
+  // deployed code when online — the cache only kicks in when there's no connection at all. (A
+  // stale-while-revalidate strategy here would keep serving an old cached page indefinitely,
+  // masking every future fix/update behind a screen that looks identical to the bug being fixed.)
   if (request.mode === "navigate" || APP_SHELL_URLS.includes(url.pathname)) {
-    event.respondWith(staleWhileRevalidate(request, APP_SHELL_CACHE));
+    event.respondWith(networkFirst(request, APP_SHELL_CACHE));
   }
 });
 
@@ -58,16 +61,4 @@ async function networkFirst(request, cacheName) {
       headers: { "Content-Type": "application/json" },
     });
   }
-}
-
-async function staleWhileRevalidate(request, cacheName) {
-  const cache = await caches.open(cacheName);
-  const cached = await cache.match(request);
-  const networkFetch = fetch(request)
-    .then((response) => {
-      cache.put(request, response.clone());
-      return response;
-    })
-    .catch(() => undefined);
-  return cached || (await networkFetch) || Response.error();
 }
