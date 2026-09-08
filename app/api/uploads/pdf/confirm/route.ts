@@ -4,6 +4,8 @@ import { prisma } from "@/lib/prisma";
 import { confirmUploadSchema } from "@/lib/validation/schemas";
 import { toErrorResponse } from "@/lib/api/errors";
 
+export const maxDuration = 60;
+
 /** POST /api/uploads/pdf/confirm — saves the dishes the user reviewed (and possibly edited/
  *  removed) after POST /api/uploads/pdf parsed them. */
 export async function POST(req: NextRequest) {

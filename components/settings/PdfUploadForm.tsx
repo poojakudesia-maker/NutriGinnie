@@ -99,8 +99,13 @@ export default function PdfUploadForm({ userId }: { userId: string }) {
       setMessage(`Saved ${json.recipes.length} dish(es).`);
       setReview(null);
       router.refresh();
-    } catch {
-      setMessage("Network error. Please try again.");
+    } catch (err) {
+      console.error("Save recipes failed:", err);
+      setMessage(
+        err instanceof SyntaxError
+          ? "The server took too long or returned an unexpected response while saving. Please try again."
+          : "Network error. Please check your connection and try again."
+      );
     } finally {
       setSaving(false);
     }
