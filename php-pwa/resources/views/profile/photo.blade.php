@@ -1,10 +1,10 @@
 <x-layouts.app title="Profile picture · NutriPing">
-    <div class="flex flex-col gap-4 pt-6">
+    <div class="flex flex-col gap-4 pt-2">
         <x-profile.progress :step-index="$stepIndex" :total-steps="$totalSteps" />
 
         <div>
-            <h1 class="text-2xl font-bold text-[var(--color-charcoal)]">Add a profile picture</h1>
-            <p class="mt-1 text-sm text-[var(--color-charcoal-muted)]">Totally optional — you can skip this.</p>
+            <h1 class="text-xl font-bold text-[var(--color-charcoal)]">📷 Add a photo</h1>
+            <p class="mt-0.5 text-xs text-[var(--color-charcoal-muted)]">Totally optional — you can skip this</p>
         </div>
 
         <x-card>

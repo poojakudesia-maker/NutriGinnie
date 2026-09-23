@@ -1,8 +1,11 @@
 <?php
 
+use App\Http\Controllers\Auth\GoogleAuthController;
 use App\Http\Controllers\Auth\LoginController;
+use App\Http\Controllers\Auth\MobileNumberController;
 use App\Http\Controllers\Auth\RegisterController;
 use App\Http\Controllers\Auth\VerifyCodeController;
+use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\MealPlanController;
 use App\Http\Controllers\ProfileSetupController;
 use App\Http\Controllers\RecipeController;
@@ -26,17 +29,21 @@ Route::middleware('guest')->group(function () {
 
     Route::get('/login', [LoginController::class, 'create'])->name('login.create');
     Route::post('/login', [LoginController::class, 'store'])->name('login.store');
+
+    Route::get('/auth/google/redirect', [GoogleAuthController::class, 'redirect'])->name('google.redirect');
+    Route::get('/auth/google/callback', [GoogleAuthController::class, 'callback'])->name('google.callback');
 });
 
 Route::post('/logout', [LoginController::class, 'destroy'])
     ->middleware('auth')
     ->name('logout');
 
-Route::get('/dashboard', function () {
-    return view('dashboard');
-})->middleware('auth')->name('dashboard');
+Route::get('/dashboard', [DashboardController::class, 'show'])->middleware('auth')->name('dashboard');
 
 Route::middleware('auth')->group(function () {
+    Route::get('/onboarding/mobile', [MobileNumberController::class, 'create'])->name('onboarding.mobile');
+    Route::post('/onboarding/mobile', [MobileNumberController::class, 'store'])->name('onboarding.mobile.store');
+
     Route::get('/profile/{step}', [ProfileSetupController::class, 'edit'])->name('profile.edit');
     Route::post('/profile/{step}', [ProfileSetupController::class, 'update'])->name('profile.update');
 

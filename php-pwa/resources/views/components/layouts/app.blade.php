@@ -1,3 +1,4 @@
+@props(['nav' => false])
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -14,8 +15,12 @@
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 <body class="min-h-screen bg-[var(--color-cream)] font-sans text-[var(--color-charcoal)] antialiased">
-    <div class="mx-auto min-h-screen max-w-md px-4 pb-24 pt-6">
+    <div class="mx-auto min-h-screen max-w-md px-4 pt-6 {{ $nav ? 'pb-24' : 'pb-10' }}">
         {{ $slot }}
     </div>
+
+    @if ($nav)
+        <x-bottom-nav />
+    @endif
 </body>
 </html>

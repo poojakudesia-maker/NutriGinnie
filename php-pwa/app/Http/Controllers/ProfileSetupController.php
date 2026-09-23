@@ -62,14 +62,28 @@ class ProfileSetupController extends Controller
         $validated = $request->validate([
             'age' => ['required', 'integer', 'min:10', 'max:100'],
             'gender' => ['required', Rule::in(['MALE', 'FEMALE'])],
-            'ethnicity' => ['nullable', 'string', 'max:255'],
+            'ethnicity_choice' => ['nullable', 'string', 'max:255'],
+            'ethnicity_other' => ['nullable', 'required_if:ethnicity_choice,OTHER', 'string', 'max:255'],
             'height_cm' => ['required', 'numeric', 'min:100', 'max:250'],
             'weight_kg' => ['required', 'numeric', 'min:30', 'max:300'],
             'target_weight_kg' => ['nullable', 'numeric', 'min:30', 'max:300'],
             'activity_level' => ['required', Rule::in(['SEDENTARY', 'LIGHT', 'MODERATE', 'HIGH'])],
         ]);
 
-        $user->fill($validated)->save();
+        $ethnicity = $validated['ethnicity_choice'] ?? null;
+        if ($ethnicity === 'OTHER') {
+            $ethnicity = $validated['ethnicity_other'] ?? null;
+        }
+
+        $user->fill([
+            'age' => $validated['age'],
+            'gender' => $validated['gender'],
+            'ethnicity' => $ethnicity,
+            'height_cm' => $validated['height_cm'],
+            'weight_kg' => $validated['weight_kg'],
+            'target_weight_kg' => $validated['target_weight_kg'] ?? null,
+            'activity_level' => $validated['activity_level'],
+        ])->save();
     }
 
     protected function updateHealth(Request $request, User $user): void

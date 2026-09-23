@@ -1,8 +1,15 @@
 <x-layouts.app title="Create account · NutriPing">
-    <div class="flex flex-col gap-6 pt-6">
-        <div>
+    <div class="flex flex-col gap-5 pt-8">
+        <div class="text-center">
             <h1 class="text-2xl font-bold text-[var(--color-charcoal)]">Create your account</h1>
-            <p class="mt-1 text-sm text-[var(--color-charcoal-muted)]">Let's get you set up with a personalised diet plan.</p>
+        </div>
+
+        <x-google-button />
+
+        <div class="flex items-center gap-2 text-xs text-[var(--color-charcoal-muted)]">
+            <div class="h-px flex-1 bg-[var(--color-warm-border)]"></div>
+            or
+            <div class="h-px flex-1 bg-[var(--color-warm-border)]"></div>
         </div>
 
         <x-card>

@@ -55,8 +55,16 @@ class RegisterController extends Controller
         return back()->with('status', 'A new activation code has been sent to your email.');
     }
 
+    /** Guards against a duplicate email from a double form submission or rapid double-click on "Resend". */
     protected function sendActivationCode(User $user): void
     {
+        if ($user->email_activation_code_expires_at !== null) {
+            $sentAt = $user->email_activation_code_expires_at->subMinutes(15);
+            if ($sentAt->diffInSeconds(now(), absolute: false) < 30) {
+                return;
+            }
+        }
+
         $code = (string) random_int(100000, 999999);
 
         $user->forceFill([

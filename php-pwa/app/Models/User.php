@@ -11,7 +11,7 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
 #[Fillable([
-    'name', 'email', 'mobile_number', 'password',
+    'name', 'email', 'google_id', 'mobile_number', 'password',
     'age', 'gender', 'ethnicity', 'height_cm', 'weight_kg', 'target_weight_kg', 'activity_level', 'profile_photo_path',
     'medical_conditions', 'is_glp1', 'glp1_medication', 'glp1_dosage_mg', 'glp1_dosing_day',
     'diet_type', 'allergies', 'cuisine_preference', 'food_likes', 'food_dislikes',
@@ -45,6 +45,12 @@ class User extends Authenticatable
             'has_dietitian' => 'boolean',
             'whatsapp_reminders_enabled' => 'boolean',
         ];
+    }
+
+    /** True for accounts created via Google that haven't supplied a WhatsApp number yet. */
+    public function needsMobileNumber(): bool
+    {
+        return $this->mobile_number === null;
     }
 
     /** True once the profile-setup wizard has been completed (gate for every authenticated screen). */

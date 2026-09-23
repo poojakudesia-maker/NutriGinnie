@@ -1,10 +1,10 @@
 <x-layouts.app title="Dietitian plan · NutriPing">
-    <div class="flex flex-col gap-4 pt-6">
+    <div class="flex flex-col gap-4 pt-2">
         <x-profile.progress :step-index="$stepIndex" :total-steps="$totalSteps" />
 
         <div>
-            <h1 class="text-2xl font-bold text-[var(--color-charcoal)]">Working with a dietitian?</h1>
-            <p class="mt-1 text-sm text-[var(--color-charcoal-muted)]">If you have an existing plan, we can blend it with AI-generated suggestions.</p>
+            <h1 class="text-xl font-bold text-[var(--color-charcoal)]">🩺 Working with a dietitian?</h1>
+            <p class="mt-0.5 text-xs text-[var(--color-charcoal-muted)]">We'll blend their plan with AI suggestions</p>
         </div>
 
         <x-card>
@@ -17,7 +17,7 @@
                         <input type="checkbox" name="has_dietitian" value="1" onchange="document.getElementById('dietitian-fields').classList.toggle('hidden', !this.checked)"
                             {{ old('has_dietitian', $user->has_dietitian) ? 'checked' : '' }}
                             class="rounded accent-[var(--color-orange)]">
-                        I'm currently on a diet plan from a dietitian
+                        Yes, I have a dietitian's plan
                     </label>
 
                     <div id="dietitian-fields" class="{{ old('has_dietitian', $user->has_dietitian) ? '' : 'hidden' }} mt-3 flex flex-col gap-3">

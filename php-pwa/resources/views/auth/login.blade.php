@@ -1,8 +1,15 @@
 <x-layouts.app title="Sign in · NutriPing">
-    <div class="flex flex-col gap-6 pt-6">
-        <div>
+    <div class="flex flex-col gap-5 pt-8">
+        <div class="text-center">
             <h1 class="text-2xl font-bold text-[var(--color-charcoal)]">Welcome back</h1>
-            <p class="mt-1 text-sm text-[var(--color-charcoal-muted)]">Sign in to see your diet plan.</p>
+        </div>
+
+        <x-google-button />
+
+        <div class="flex items-center gap-2 text-xs text-[var(--color-charcoal-muted)]">
+            <div class="h-px flex-1 bg-[var(--color-warm-border)]"></div>
+            or
+            <div class="h-px flex-1 bg-[var(--color-warm-border)]"></div>
         </div>
 
         <x-card>
@@ -33,7 +40,7 @@
         </x-card>
 
         <p class="text-center text-sm text-[var(--color-charcoal-muted)]">
-            New to NutriPing?
+            New here?
             <a href="{{ route('register.create') }}" class="font-semibold text-[var(--color-orange-dark)]">Create an account</a>
         </p>
     </div>
