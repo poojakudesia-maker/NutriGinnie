@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Services\DietPlanGenerator;
+use App\Jobs\GenerateWeeklyPlan;
 use App\Services\WhatsApp\WhatsAppDispatcher;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
@@ -27,10 +27,12 @@ class MealPlanController extends Controller
         return view('meal-plan.show', [
             'weekStart' => $weekStart,
             'days' => $days,
+            'generating' => $user->plan_generating,
+            'generationError' => $user->plan_generation_error,
         ]);
     }
 
-    public function generate(Request $request, DietPlanGenerator $generator): RedirectResponse
+    public function generate(Request $request): RedirectResponse
     {
         $user = $request->user();
 
@@ -38,13 +40,18 @@ class MealPlanController extends Controller
             return redirect()->route('profile.edit', 'basics')->withErrors(['profile' => 'Please finish your profile first.']);
         }
 
-        try {
-            $generator->generateWeek($user);
-        } catch (Throwable $e) {
-            return redirect()->route('meal-plan.show')->withErrors(['plan' => $e->getMessage()]);
+        if ($user->plan_generating) {
+            return redirect()->route('meal-plan.show');
         }
 
-        return redirect()->route('meal-plan.show')->with('status', 'Your weekly plan is ready!');
+        $user->forceFill(['plan_generating' => true, 'plan_generation_error' => null])->save();
+
+        // afterResponse(): the user gets redirected immediately instead of the
+        // request hanging until Claude replies (30-90s), which on shared
+        // hosting exceeds the front-end proxy's timeout and 504s.
+        GenerateWeeklyPlan::dispatch($user)->afterResponse();
+
+        return redirect()->route('meal-plan.show')->with('status', 'Generating your plan — this can take up to a minute…');
     }
 
     public function sendNow(Request $request, WhatsAppDispatcher $dispatcher): RedirectResponse

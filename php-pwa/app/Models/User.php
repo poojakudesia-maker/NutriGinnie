@@ -44,6 +44,7 @@ class User extends Authenticatable
             'is_glp1' => 'boolean',
             'has_dietitian' => 'boolean',
             'whatsapp_reminders_enabled' => 'boolean',
+            'plan_generating' => 'boolean',
         ];
     }
 
