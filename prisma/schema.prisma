@@ -1,0 +1,315 @@
+// NutriPing database schema
+// Provider: PostgreSQL (Supabase / Neon / Railway all work unmodified)
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Gender {
+  MALE
+  FEMALE
+}
+
+enum ActivityLevel {
+  SEDENTARY
+  LIGHT
+  MODERATE
+  HIGH
+}
+
+enum DietType {
+  VEG
+  EGGETARIAN
+  NON_VEG
+}
+
+enum RecipeSource {
+  PDF
+  DOCX
+  INSTAGRAM
+  YOUTUBE
+  MANUAL_TEXT
+  AI_GENERATED
+}
+
+enum AuthProvider {
+  LOCAL
+  GOOGLE
+}
+
+enum CalorieSource {
+  CALCULATED
+  MANUAL
+}
+
+enum RecipeMealType {
+  BREAKFAST
+  SNACK
+  LUNCH
+  DINNER
+}
+
+enum WhatsAppMessageType {
+  DIET_TEXT
+  DIET_VOICE
+  GROCERY_TEXT
+}
+
+enum WhatsAppStatus {
+  QUEUED
+  SENT
+  DELIVERED
+  READ
+  FAILED
+}
+
+enum MealLogSlot {
+  BREAKFAST
+  SNACK1
+  LUNCH
+  SNACK2
+  DINNER
+}
+
+enum MealLogMethod {
+  PLANNED_CONFIRM
+  PHOTO
+  CUSTOM
+}
+
+model User {
+  id String @id @default(cuid())
+
+  // Login credentials
+  email        String       @unique
+  passwordHash String? // null for Google-authenticated accounts
+  authProvider AuthProvider @default(LOCAL)
+  googleId     String?      @unique
+
+  // Basic profile (nullable: a Google sign-in creates the row before the
+  // health/food profile is filled in via /onboarding/complete-profile)
+  name           String
+  age            Int?
+  gender         Gender?
+  heightCm       Float?
+  weightKg       Float?
+  targetWeightKg Float?
+  activityLevel  ActivityLevel?
+
+  // Health inputs
+  medicalConditions String[] @default([])
+  isGlp1            Boolean  @default(false)
+  glp1Medication    String?
+  glp1DosageMg      Float?
+
+  // Food preferences
+  dietType          DietType @default(VEG)
+  allergies         String[] @default([])
+  cuisinePreference String[] @default(["Indian"])
+
+  // WhatsApp (max 2 enforced at the application layer, see lib/validation)
+  whatsappNumbers String[] @default([])
+
+  // Delivery preferences: IANA timezone (auto-detected client-side at onboarding, used to
+  // schedule the nightly WhatsApp send at dispatchHour in *this user's* local time) and an
+  // opt-out for the reminder itself.
+  timezone                 String  @default("Asia/Kolkata")
+  dispatchHour             Int     @default(19) // 0-23, local time
+  whatsappRemindersEnabled Boolean @default(true)
+
+  // Calculation engine outputs. calorieSource MANUAL means the user entered their own
+  // dietitian-given budget directly instead of having it derived from BMR/TDEE — bmr/tdee/bmi
+  // are still computed (and shown) for reference, but calorieTarget/proteinTargetG/carbTargetG/
+  // fatTargetG come from the user's input rather than the formula in that case.
+  calorieSource    CalorieSource @default(CALCULATED)
+  bmi              Float?
+  bmr              Float?
+  tdee             Float?
+  calorieTarget    Float?
+  proteinTargetG   Float?
+  carbTargetG      Float?
+  fatTargetG       Float?
+  deficitKcal      Float?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  recipes       Recipe[]
+  mealPlans     MealPlan[]
+  groceries     Grocery[]
+  whatsAppLogs  WhatsAppLog[]
+  weightLogs    WeightLog[]
+  waterLogs     WaterLog[]
+  mealLogs      MealLog[]
+  glp1Logs      Glp1Log[]
+
+  @@map("users")
+}
+
+model Recipe {
+  id     String       @id @default(cuid())
+  userId String
+  user   User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  name         String
+  source       RecipeSource
+  sourceUrl    String?
+  rawInput     String? // original pasted text / instagram caption / pdf excerpt
+
+  // Best-effort classification from the source (e.g. a PDF's "Breakfast:" heading, or
+  // dish type inferred by the parser). Null when the source gives no hint — the
+  // deterministic weekly-plan builder treats null as "usable in any slot".
+  mealType RecipeMealType?
+
+  ingredients  Json // [{ name, quantity, unit }]
+  instructions String?
+
+  calories  Float?
+  proteinG  Float?
+  carbsG    Float?
+  fatG      Float?
+  fiberG    Float?
+  ironMg    Float?
+  calciumMg Float?
+  micros    Json? // any additional micronutrients { key: value }
+
+  aiEstimated Boolean @default(false) // true if nutrition was AI-estimated (missing source data)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@map("recipes")
+}
+
+model MealPlan {
+  id            String   @id @default(cuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  weekStartDate DateTime // Monday of the plan week (date-only, stored at midnight UTC)
+  dayIndex      Int // 0..6 (0 = weekStartDate)
+  dayLabel      String // "Monday", "Tuesday", ...
+
+  meals Json // { breakfast, snack1, lunch, snack2, dinner } each: { name, recipeId?, calories, proteinG, carbsG, fatG, fiberG, ingredients }
+
+  totalCalories Float
+  totalProteinG Float
+  totalCarbsG   Float
+  totalFatG     Float
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, weekStartDate, dayIndex])
+  @@index([userId])
+  @@map("meal_plans")
+}
+
+model Grocery {
+  id      String   @id @default(cuid())
+  userId  String
+  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  forDate DateTime // date the grocery list is needed for (i.e. the day the ingredients get cooked)
+  items   Json // [{ name, quantity, unit, category }]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, forDate])
+  @@index([userId])
+  @@map("groceries")
+}
+
+model WhatsAppLog {
+  id                String              @id @default(cuid())
+  userId            String
+  user              User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  phoneNumber       String
+  messageType       WhatsAppMessageType
+  status            WhatsAppStatus      @default(QUEUED)
+  providerMessageId String?
+  errorMessage      String?
+  payloadPreview    String? // first ~200 chars of the message body, for debugging
+
+  sentAt    DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@index([userId])
+  @@map("whatsapp_logs")
+}
+
+// Bonus: weight tracking graph
+model WeightLog {
+  id       String   @id @default(cuid())
+  userId   String
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  weightKg Float
+  loggedAt DateTime @default(now())
+
+  @@index([userId])
+  @@map("weight_logs")
+}
+
+// Bonus: water intake tracker
+model WaterLog {
+  id       String   @id @default(cuid())
+  userId   String
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  amountMl Int
+  loggedAt DateTime @default(now())
+
+  @@index([userId])
+  @@map("water_logs")
+}
+
+// Daily Meal Logger: one row per (user, day, slot). "PLANNED_CONFIRM" copies macros straight
+// from that day's MealPlan slot; "PHOTO"/"CUSTOM" are AI-estimated off-plan swaps.
+model MealLog {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  forDate DateTime // date-only, midnight UTC — the day this meal belongs to
+  slot    MealLogSlot
+  method  MealLogMethod
+
+  description  String? // dish name (planned) or free-text description (custom/photo)
+  photoDataUrl String? @db.Text // base64 data URL of the logged photo, if any (no blob storage configured)
+
+  calories    Float
+  proteinG    Float
+  carbsG      Float
+  fatG        Float
+  aiEstimated Boolean @default(false)
+
+  createdAt DateTime @default(now())
+
+  @@unique([userId, forDate, slot])
+  @@index([userId])
+  @@map("meal_logs")
+}
+
+// GLP-1 side-effect & appetite log, shown only when User.isGlp1 is true.
+model Glp1Log {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  loggedAt         DateTime @default(now())
+  nauseaLevel      Int? // 0 (none) - 5 (severe)
+  hydrationMl      Int?
+  proteinCompliant Boolean?
+  notes            String?
+
+  @@index([userId])
+  @@map("glp1_logs")
+}

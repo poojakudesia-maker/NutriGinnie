@@ -1,0 +1,65 @@
+@import 'tailwindcss';
+
+@source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
+@source '../../storage/framework/views/*.php';
+
+@theme {
+    --font-sans: ui-sans-serif, system-ui, -apple-system, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
+        'Segoe UI Symbol', 'Noto Color Emoji';
+
+    /* Warm orange/cream/sage palette, matching the original NutriPing design. */
+    --color-orange: #f4703a;
+    --color-orange-light: #fde3d3;
+    --color-orange-dark: #d9581f;
+    --color-cream: #fdf8f2;
+    --color-cream-deep: #f3e9da;
+    --color-sage: #7c9a79;
+    --color-sage-light: #e3ecdf;
+    --color-charcoal: #2b2620;
+    --color-charcoal-muted: #6b6255;
+    --color-surface: #ffffff;
+    --color-warm-border: #ece1d3;
+}
+
+body {
+    background-color: var(--color-cream);
+    color: var(--color-charcoal);
+}
+
+.chip-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    border-radius: 9999px;
+    border: 1px solid var(--color-warm-border);
+    background: #ffffff;
+    padding: 0.4rem 0.9rem;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: var(--color-charcoal-muted);
+    transition: all 0.15s ease;
+}
+
+.chip:active {
+    transform: scale(0.96);
+}
+
+.chip-selected {
+    border-color: var(--color-orange);
+    background: var(--color-orange-light);
+    color: var(--color-orange-dark);
+}
+
+.bottom-nav-item {
+    transition: color 0.15s ease, transform 0.1s ease;
+}
+
+.bottom-nav-item:active {
+    transform: scale(0.94);
+}

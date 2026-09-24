@@ -1,0 +1,145 @@
+/**
+ * Fetches a YouTube video's auto-generated/uploaded captions with no API key,
+ * using the same public caption-track endpoint the YouTube player itself
+ * calls. This is a best-effort auto-fetch: some videos have captions
+ * disabled entirely, in which case callers should fall back to asking the
+ * user to paste the recipe text/description manually (see RecipeForm.tsx).
+ */
+
+function extractVideoId(url: string): string | null {
+  try {
+    const parsed = new URL(url);
+    const host = parsed.hostname.replace(/^www\./, "");
+    if (host === "youtu.be") return parsed.pathname.slice(1).split("/")[0] || null;
+    if (host === "youtube.com" || host === "m.youtube.com") {
+      if (parsed.pathname === "/watch") return parsed.searchParams.get("v");
+      const shortsMatch = parsed.pathname.match(/^\/(shorts|embed|live)\/([^/]+)/);
+      if (shortsMatch) return shortsMatch[2];
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+interface CaptionTrack {
+  baseUrl: string;
+  languageCode: string;
+  kind?: string; // "asr" = auto-generated
+}
+
+/** Retries once after a short delay on a rate-limit/transient-server response, since YouTube's
+ *  unofficial page-scraping endpoint occasionally 429s a request that succeeds moments later. */
+async function fetchWithRetry(url: string, init?: RequestInit): Promise<Response> {
+  const res = await fetch(url, init);
+  if (res.status === 429 || res.status === 503) {
+    await new Promise((resolve) => setTimeout(resolve, 1500));
+    return fetch(url, init);
+  }
+  return res;
+}
+
+async function fetchCaptionTracks(videoId: string): Promise<CaptionTrack[]> {
+  const res = await fetchWithRetry(`https://www.youtube.com/watch?v=${videoId}`, {
+    headers: {
+      "User-Agent":
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36",
+      "Accept-Language": "en-US,en;q=0.9",
+    },
+  });
+  if (!res.ok) {
+    throw new Error(
+      res.status === 429
+        ? "YouTube is rate-limiting these requests right now. Please try again in a minute, or paste the recipe text instead."
+        : `Could not load the YouTube video page (${res.status}).`
+    );
+  }
+  const html = await res.text();
+
+  const match = html.match(/"captionTracks":(\[.*?\])(?=,"(?:audioTracks|translationLanguages)")/);
+  if (!match) return [];
+
+  try {
+    return JSON.parse(match[1]) as CaptionTrack[];
+  } catch {
+    return [];
+  }
+}
+
+interface Json3Event {
+  segs?: { utf8?: string }[];
+}
+
+/** Returns null (rather than throwing) so the caller can fall back to the XML format. */
+function parseJson3Transcript(json: string): string | null {
+  if (!json.trim()) return null;
+  try {
+    const data = JSON.parse(json) as { events?: Json3Event[] };
+    const lines = (data.events ?? [])
+      .flatMap((event) => event.segs ?? [])
+      .map((seg) => seg.utf8 ?? "")
+      .join("");
+    return lines.replace(/\n+/g, " ").replace(/\s+/g, " ").trim() || null;
+  } catch {
+    return null;
+  }
+}
+
+/** YouTube's default (no &fmt=) caption format: `<text ...>escaped html</text>` per line. */
+function parseXmlTranscript(xml: string): string | null {
+  if (!xml.trim()) return null;
+  const matches = [...xml.matchAll(/<text[^>]*>([\s\S]*?)<\/text>/g)];
+  if (matches.length === 0) return null;
+  const decodeEntities = (s: string) =>
+    s
+      .replace(/&amp;/g, "&")
+      .replace(/&#39;/g, "'")
+      .replace(/&quot;/g, '"')
+      .replace(/&lt;/g, "<")
+      .replace(/&gt;/g, ">");
+  return matches
+    .map((m) => decodeEntities(m[1]))
+    .join(" ")
+    .replace(/\s+/g, " ")
+    .trim() || null;
+}
+
+function withQueryParam(url: string, param: string): string {
+  return `${url}${url.includes("?") ? "&" : "?"}${param}`;
+}
+
+/**
+ * Returns the video's transcript as plain text, or throws if no captions
+ * are available. Prefers an English track, falling back to the first
+ * available language. Tries the JSON3 caption format first, then falls back
+ * to YouTube's default XML format if JSON3 comes back empty/unparseable.
+ */
+export async function fetchYouTubeTranscript(url: string): Promise<string> {
+  const videoId = extractVideoId(url);
+  if (!videoId) {
+    throw new Error("Could not parse a YouTube video ID from that link.");
+  }
+
+  const tracks = await fetchCaptionTracks(videoId);
+  if (tracks.length === 0) {
+    throw new Error("This video has no captions/transcript available to fetch automatically.");
+  }
+
+  const track = tracks.find((t) => t.languageCode?.startsWith("en")) ?? tracks[0];
+
+  const json3Res = await fetch(withQueryParam(track.baseUrl, "fmt=json3"));
+  if (json3Res.ok) {
+    const transcript = parseJson3Transcript(await json3Res.text());
+    if (transcript) return transcript;
+  }
+
+  const xmlRes = await fetch(track.baseUrl);
+  if (!xmlRes.ok) {
+    throw new Error(`Could not download the caption track (${xmlRes.status}).`);
+  }
+  const xmlTranscript = parseXmlTranscript(await xmlRes.text());
+  if (!xmlTranscript) {
+    throw new Error("The caption track was empty.");
+  }
+  return xmlTranscript;
+}
