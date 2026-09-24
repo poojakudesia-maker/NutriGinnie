@@ -43,7 +43,9 @@ class SendNightlyPlans extends Command
 
             $tomorrow = $now->copy()->addDay();
             $weekStart = $tomorrow->copy()->startOfWeek(Carbon::MONDAY);
-            $dayIndex = $weekStart->diffInDays($tomorrow);
+            // diffInDays returns a float when either side carries a time-of-day component,
+            // which never matches the integer day_index column — round to a whole day count.
+            $dayIndex = (int) $weekStart->startOfDay()->diffInDays($tomorrow->copy()->startOfDay());
 
             $day = $user->mealPlans()
                 ->where('week_start_date', $weekStart->toDateString())

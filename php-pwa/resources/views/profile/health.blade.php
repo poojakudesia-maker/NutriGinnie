@@ -14,6 +14,7 @@
         <x-card>
             <form method="POST" action="{{ route('profile.update', 'health') }}" class="flex flex-col gap-4">
                 @csrf
+                @if ($editMode ?? false)<input type="hidden" name="edit" value="1">@endif
 
                 <div>
                     <label class="mb-2 block text-sm font-medium">Current medication / conditions <span class="text-[var(--color-charcoal-muted)]">— optional</span></label>

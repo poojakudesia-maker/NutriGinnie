@@ -10,6 +10,7 @@
         <x-card>
             <form method="POST" action="{{ route('profile.update', 'dietitian') }}" enctype="multipart/form-data" class="flex flex-col gap-4">
                 @csrf
+                @if ($editMode ?? false)<input type="hidden" name="edit" value="1">@endif
 
                 <div class="rounded-xl border border-[var(--color-warm-border)] p-3">
                     <label class="flex items-center gap-2 text-sm font-medium">

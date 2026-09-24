@@ -5,12 +5,13 @@
                 <p class="text-xs font-medium text-[var(--color-charcoal-muted)]">Hi {{ explode(' ', auth()->user()->name)[0] }} 👋</p>
                 <h1 class="text-xl font-bold text-[var(--color-charcoal)]">NutriPing</h1>
             </div>
-            <form method="POST" action="{{ route('logout') }}">
-                @csrf
-                <button type="submit" aria-label="Sign out" class="flex h-9 w-9 items-center justify-center rounded-full bg-[var(--color-cream-deep)] text-[var(--color-charcoal-muted)]">
-                    <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>
-                </button>
-            </form>
+            <a href="{{ route('profile.show') }}" aria-label="Profile" class="flex h-9 w-9 items-center justify-center rounded-full bg-[var(--color-cream-deep)] text-[var(--color-charcoal-muted)]">
+                @if (auth()->user()->profile_photo_path)
+                    <img src="{{ Storage::disk('public')->url(auth()->user()->profile_photo_path) }}" alt="" class="h-9 w-9 rounded-full object-cover">
+                @else
+                    <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-3.3 3.6-6 8-6s8 2.7 8 6"/></svg>
+                @endif
+            </a>
         </div>
 
         @if (session('status'))
@@ -32,7 +33,7 @@
             <x-card>
                 <div class="flex items-center justify-between">
                     <h2 class="flex items-center gap-1.5 text-sm font-semibold text-[var(--color-charcoal)]">📊 Your numbers</h2>
-                    <a href="{{ route('profile.edit', 'basics') }}" class="text-xs font-semibold text-[var(--color-orange-dark)]">Edit</a>
+                    <a href="{{ route('profile.show') }}" class="text-xs font-semibold text-[var(--color-orange-dark)]">Edit</a>
                 </div>
                 <div class="mt-3 grid grid-cols-2 gap-3 text-sm">
                     <div>

@@ -15,6 +15,7 @@
         <x-card>
             <form method="POST" action="{{ route('profile.update', 'basics') }}" class="flex flex-col gap-4">
                 @csrf
+                @if ($editMode ?? false)<input type="hidden" name="edit" value="1">@endif
 
                 <div class="grid grid-cols-2 gap-3">
                     <div>

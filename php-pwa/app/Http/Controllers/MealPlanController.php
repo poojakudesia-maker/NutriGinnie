@@ -10,7 +10,6 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\View\View;
-use Throwable;
 
 class MealPlanController extends Controller
 {
@@ -24,12 +23,61 @@ class MealPlanController extends Controller
             ->orderBy('day_index')
             ->get();
 
+        $groceries = $user->groceries()
+            ->whereBetween('for_date', [$weekStart->toDateString(), $weekStart->copy()->addDays(6)->toDateString()])
+            ->get();
+
         return view('meal-plan.show', [
             'weekStart' => $weekStart,
             'days' => $days,
             'generating' => $user->plan_generating,
             'generationError' => $user->plan_generation_error,
+            'groceryByCategory' => $this->aggregateGroceries($groceries),
         ]);
+    }
+
+    /** Merges the week's daily grocery lists into one, combining matching name+unit entries. */
+    protected function aggregateGroceries($groceries): array
+    {
+        $merged = [];
+
+        foreach ($groceries as $day) {
+            foreach (($day->items ?? []) as $item) {
+                $name = trim((string) ($item['name'] ?? ''));
+                if ($name === '') {
+                    continue;
+                }
+                $unit = trim((string) ($item['unit'] ?? ''));
+                $category = trim((string) ($item['category'] ?? 'Other')) ?: 'Other';
+                $key = mb_strtolower($name) . '|' . mb_strtolower($unit);
+
+                $quantity = $item['quantity'] ?? null;
+
+                if (! isset($merged[$key])) {
+                    $merged[$key] = ['name' => $name, 'unit' => $unit, 'category' => $category, 'quantity' => is_numeric($quantity) ? (float) $quantity : null, 'quantities' => is_numeric($quantity) ? [] : [(string) $quantity]];
+                    continue;
+                }
+
+                if (is_numeric($quantity) && $merged[$key]['quantity'] !== null) {
+                    $merged[$key]['quantity'] += (float) $quantity;
+                } elseif (! is_numeric($quantity)) {
+                    $merged[$key]['quantities'][] = (string) $quantity;
+                }
+            }
+        }
+
+        $byCategory = [];
+        foreach ($merged as $item) {
+            $qty = $item['quantity'] !== null
+                ? (fmod($item['quantity'], 1) === 0.0 ? (string) (int) $item['quantity'] : (string) $item['quantity'])
+                : implode('+', array_filter($item['quantities']));
+
+            $byCategory[$item['category']][] = trim($item['name'] . ' — ' . $qty . $item['unit'], ' —');
+        }
+
+        ksort($byCategory);
+
+        return $byCategory;
     }
 
     public function generate(Request $request): RedirectResponse
@@ -54,12 +102,16 @@ class MealPlanController extends Controller
         return redirect()->route('meal-plan.show')->with('status', 'Generating your plan — this can take up to a minute…');
     }
 
+    /** Sends tomorrow's plan — matches the nightly scheduler's semantics (sent the evening before). */
     public function sendNow(Request $request, WhatsAppDispatcher $dispatcher): RedirectResponse
     {
         $user = $request->user();
-        $today = Carbon::now($user->timezone ?: 'Asia/Kolkata');
-        $weekStart = $today->copy()->startOfWeek(Carbon::MONDAY);
-        $dayIndex = $weekStart->diffInDays($today);
+        $tomorrow = Carbon::now($user->timezone ?: 'Asia/Kolkata')->addDay();
+        $weekStart = $tomorrow->copy()->startOfWeek(Carbon::MONDAY);
+        // diffInDays returns a float when either side carries a time-of-day component
+        // (e.g. 4.48), which never matches the integer day_index column — round it down
+        // to a whole day count first.
+        $dayIndex = (int) $weekStart->startOfDay()->diffInDays($tomorrow->copy()->startOfDay());
 
         $day = $user->mealPlans()
             ->where('week_start_date', $weekStart->toDateString())
@@ -67,16 +119,20 @@ class MealPlanController extends Controller
             ->first();
 
         if (! $day) {
-            return redirect()->route('meal-plan.show')->withErrors(['plan' => "No plan for today yet — generate this week's plan first."]);
+            return redirect()->route('meal-plan.show')->withErrors(['plan' => "No plan for {$tomorrow->format('l')} yet — generate this week's plan first."]);
         }
 
-        try {
-            $dispatcher->sendDayPlan($user, $day);
-        } catch (Throwable $e) {
-            return redirect()->route('meal-plan.show')->withErrors(['plan' => 'Could not send to WhatsApp: ' . $e->getMessage()]);
+        $result = $dispatcher->sendDayPlan($user, $day);
+
+        if ($result['sent'] === 0) {
+            return redirect()->route('meal-plan.show')->withErrors(['plan' => 'Could not send to WhatsApp: ' . implode(' ', $result['errors'])]);
         }
 
-        return redirect()->route('meal-plan.show')->with('status', "Today's plan was sent to WhatsApp!");
+        if ($result['failed'] > 0) {
+            return redirect()->route('meal-plan.show')->with('status', "Sent to {$result['sent']} number(s), but failed for {$result['failed']}: " . implode(' ', $result['errors']));
+        }
+
+        return redirect()->route('meal-plan.show')->with('status', "{$tomorrow->format('l')}'s plan was sent to WhatsApp!");
     }
 
     public function downloadPdf(Request $request): Response

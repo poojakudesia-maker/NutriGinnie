@@ -38,7 +38,7 @@
             @if ($days->isNotEmpty())
                 <form method="POST" action="{{ route('meal-plan.send-now') }}">
                     @csrf
-                    <x-button type="submit" variant="ghost">💬 Send today's plan to WhatsApp</x-button>
+                    <x-button type="submit" variant="ghost">💬 Send tomorrow's plan to WhatsApp</x-button>
                 </form>
             @endif
 
@@ -71,6 +71,24 @@
                         </div>
                     </x-card>
                 @endforeach
+
+                @if (! empty($groceryByCategory))
+                    <x-card class="!bg-[var(--color-sage-light)]">
+                        <h2 class="mb-2 font-semibold text-[var(--color-charcoal)]">🛒 Shopping list for the week</h2>
+                        <div class="flex flex-col gap-3">
+                            @foreach ($groceryByCategory as $category => $items)
+                                <div>
+                                    <p class="mb-1 text-xs font-semibold uppercase tracking-wide text-[var(--color-sage)]">{{ $category }}</p>
+                                    <ul class="flex flex-col gap-0.5 text-sm text-[var(--color-charcoal)]">
+                                        @foreach ($items as $item)
+                                            <li>• {{ $item }}</li>
+                                        @endforeach
+                                    </ul>
+                                </div>
+                            @endforeach
+                        </div>
+                    </x-card>
+                @endif
             @endif
         @endif
     </div>

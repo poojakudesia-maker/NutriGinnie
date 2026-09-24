@@ -16,6 +16,7 @@
         <x-card>
             <form method="POST" action="{{ route('profile.update', 'diet') }}" class="flex flex-col gap-4">
                 @csrf
+                @if ($editMode ?? false)<input type="hidden" name="edit" value="1">@endif
 
                 <div>
                     <label class="mb-1 block text-sm font-medium">Diet type</label>

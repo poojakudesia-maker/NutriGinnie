@@ -24,15 +24,17 @@ class WhatsAppDispatcher
     }
 
     /**
-     * Sends tomorrow's diet + grocery message to every WhatsApp number on the account.
+     * Sends the given day's diet + grocery message to every WhatsApp number on the account.
      * Uses the approved Utility template (single {{1}} body variable = the full formatted message),
      * since this is a business-initiated send outside any active chat session.
+     *
+     * @return array{sent: int, failed: int, errors: array<int, string>}
      */
-    public function sendDayPlan(User $user, MealPlan $day): void
+    public function sendDayPlan(User $user, MealPlan $day): array
     {
         $numbers = $this->numbersFor($user);
         if (empty($numbers)) {
-            return;
+            return ['sent' => 0, 'failed' => 0, 'errors' => ['No WhatsApp number on file — add one in Profile settings.']];
         }
 
         $groceries = $user->groceries()
@@ -43,18 +45,32 @@ class WhatsAppDispatcher
         $text = WhatsAppMessageFormatter::dietAndGrocery($user, $day, $items);
         $templateName = config('services.meta_whatsapp.template_name');
 
+        $sent = 0;
+        $failed = 0;
+        $errors = [];
+
         foreach ($numbers as $number) {
-            $this->logAndSend($user, $number, 'DIET_TEXT', $text, function () use ($number, $text, $templateName) {
+            $error = $this->logAndSend($user, $number, 'DIET_TEXT', $text, function () use ($number, $text, $templateName) {
                 if (! $templateName) {
                     throw new \RuntimeException('WHATSAPP_TEMPLATE_NAME is not configured.');
                 }
 
                 return $this->client->sendTemplate($number, $templateName, [$text]);
             });
+
+            if ($error === null) {
+                $sent++;
+            } else {
+                $failed++;
+                $errors[] = "{$number}: {$error}";
+            }
         }
+
+        return ['sent' => $sent, 'failed' => $failed, 'errors' => $errors];
     }
 
-    protected function logAndSend(User $user, string $phoneNumber, string $messageType, string $preview, callable $send): void
+    /** Returns null on success, or the error message on failure. */
+    protected function logAndSend(User $user, string $phoneNumber, string $messageType, string $preview, callable $send): ?string
     {
         try {
             $result = $send();
@@ -67,6 +83,8 @@ class WhatsAppDispatcher
                 'payload_preview' => mb_substr($preview, 0, 200),
                 'sent_at' => now(),
             ]);
+
+            return null;
         } catch (Throwable $e) {
             Log::warning('WhatsApp send failed', ['user_id' => $user->id, 'error' => $e->getMessage()]);
 
@@ -77,6 +95,8 @@ class WhatsAppDispatcher
                 'error_message' => mb_substr($e->getMessage(), 0, 500),
                 'payload_preview' => mb_substr($preview, 0, 200),
             ]);
+
+            return $e->getMessage();
         }
     }
 }

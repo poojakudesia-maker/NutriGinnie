@@ -44,6 +44,9 @@ Route::middleware('auth')->group(function () {
     Route::get('/onboarding/mobile', [MobileNumberController::class, 'create'])->name('onboarding.mobile');
     Route::post('/onboarding/mobile', [MobileNumberController::class, 'store'])->name('onboarding.mobile.store');
 
+    Route::get('/profile', [ProfileSetupController::class, 'show'])->name('profile.show');
+    Route::get('/profile/whatsapp', [ProfileSetupController::class, 'editWhatsapp'])->name('profile.whatsapp.edit');
+    Route::post('/profile/whatsapp', [ProfileSetupController::class, 'updateWhatsapp'])->name('profile.whatsapp.update');
     Route::get('/profile/{step}', [ProfileSetupController::class, 'edit'])->name('profile.edit');
     Route::post('/profile/{step}', [ProfileSetupController::class, 'update'])->name('profile.update');
 

@@ -10,6 +10,7 @@
         <x-card>
             <form method="POST" action="{{ route('profile.update', 'photo') }}" enctype="multipart/form-data" class="flex flex-col gap-4">
                 @csrf
+                @if ($editMode ?? false)<input type="hidden" name="edit" value="1">@endif
 
                 <div class="flex items-center gap-4">
                     @if ($user->profile_photo_path)

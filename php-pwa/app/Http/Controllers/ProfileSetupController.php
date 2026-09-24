@@ -15,6 +15,11 @@ class ProfileSetupController extends Controller
     /** @var array<int, string> */
     protected const STEPS = ['basics', 'health', 'diet', 'dietitian', 'photo'];
 
+    public function show(Request $request): View
+    {
+        return view('profile.show', ['user' => $request->user()]);
+    }
+
     public function edit(Request $request, string $step): View|RedirectResponse
     {
         if (! in_array($step, self::STEPS, true)) {
@@ -27,6 +32,7 @@ class ProfileSetupController extends Controller
             'stepIndex' => array_search($step, self::STEPS, true),
             'totalSteps' => count(self::STEPS),
             'nextStep' => $this->nextStep($step),
+            'editMode' => $request->boolean('edit'),
         ]);
     }
 
@@ -47,6 +53,13 @@ class ProfileSetupController extends Controller
         };
 
         $this->recalculate($user);
+
+        // Editing an already-complete profile from the Settings hub always
+        // returns there, regardless of step order — only fresh onboarding
+        // (no "edit" flag) walks through the wizard step by step.
+        if ($request->boolean('edit')) {
+            return redirect()->route('profile.show')->with('status', 'Saved!');
+        }
 
         $next = $this->nextStep($step);
 
@@ -151,6 +164,31 @@ class ProfileSetupController extends Controller
             'dietitian_contact' => $hasDietitian ? ($validated['dietitian_contact'] ?? null) : null,
             'dietitian_pdf_path' => $hasDietitian ? $pdfPath : null,
         ])->save();
+    }
+
+    public function editWhatsapp(Request $request): View
+    {
+        return view('profile.whatsapp', ['user' => $request->user()]);
+    }
+
+    public function updateWhatsapp(Request $request): RedirectResponse
+    {
+        $user = $request->user();
+
+        $validated = $request->validate([
+            'mobile_number' => ['required', 'string', 'max:20', Rule::unique('users', 'mobile_number')->ignore($user->id)],
+            'whatsapp_numbers' => ['array', 'max:2'],
+            'whatsapp_numbers.*' => ['nullable', 'string', 'max:20'],
+        ]);
+
+        $numbers = array_values(array_filter(array_map('trim', $validated['whatsapp_numbers'] ?? [])));
+
+        $user->fill([
+            'mobile_number' => $validated['mobile_number'],
+            'whatsapp_numbers' => $numbers ?: null,
+        ])->save();
+
+        return redirect()->route('profile.show')->with('status', 'WhatsApp numbers updated!');
     }
 
     protected function updatePhoto(Request $request, User $user): void
