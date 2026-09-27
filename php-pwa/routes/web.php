@@ -15,6 +15,8 @@ use Illuminate\Support\Facades\Route;
 Route::get('/webhooks/whatsapp', [WhatsAppWebhookController::class, 'verify']);
 Route::post('/webhooks/whatsapp', [WhatsAppWebhookController::class, 'handle']);
 
+Route::view('/privacy', 'privacy')->name('privacy');
+
 Route::get('/', function () {
     return auth()->check() ? redirect()->route('dashboard') : redirect()->route('login.create');
 });

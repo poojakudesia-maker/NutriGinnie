@@ -43,5 +43,8 @@
             New here?
             <a href="{{ route('register.create') }}" class="font-semibold text-[var(--color-orange-dark)]">Create an account</a>
         </p>
+        <p class="text-center text-xs text-[var(--color-charcoal-muted)]">
+            <a href="{{ route('privacy') }}" class="underline">Privacy Policy</a>
+        </p>
     </div>
 </x-layouts.app>

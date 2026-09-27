@@ -60,5 +60,8 @@
             Already have an account?
             <a href="{{ route('login.create') }}" class="font-semibold text-[var(--color-orange-dark)]">Sign in</a>
         </p>
+        <p class="text-center text-xs text-[var(--color-charcoal-muted)]">
+            By continuing, you agree to our <a href="{{ route('privacy') }}" class="underline">Privacy Policy</a>.
+        </p>
     </div>
 </x-layouts.app>
