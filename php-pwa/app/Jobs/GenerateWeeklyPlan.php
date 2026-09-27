@@ -4,6 +4,7 @@ namespace App\Jobs;
 
 use App\Models\User;
 use App\Services\DietPlanGenerator;
+use Carbon\Carbon;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Throwable;
@@ -20,7 +21,7 @@ class GenerateWeeklyPlan implements ShouldQueue
 
     public int $timeout = 170;
 
-    public function __construct(public User $user)
+    public function __construct(public User $user, public ?Carbon $weekStart = null)
     {
     }
 
@@ -31,7 +32,7 @@ class GenerateWeeklyPlan implements ShouldQueue
         }
 
         try {
-            $generator->generateWeek($this->user->fresh());
+            $generator->generateWeek($this->user->fresh(), $this->weekStart);
 
             $this->user->forceFill([
                 'plan_generating' => false,

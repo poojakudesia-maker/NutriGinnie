@@ -17,7 +17,9 @@ class DashboardController extends Controller
             return redirect()->route('onboarding.mobile');
         }
 
-        $weekStart = Carbon::now($user->timezone ?: 'Asia/Kolkata')->startOfWeek(Carbon::MONDAY);
+        // The "active" week is whichever week contains tomorrow, not today — matches
+        // MealPlanController so the CTA doesn't point at an already-elapsed week on Sundays.
+        $weekStart = Carbon::now($user->timezone ?: 'Asia/Kolkata')->addDay()->startOfWeek(Carbon::MONDAY);
 
         $hasPlanThisWeek = $user->hasCompleteProfile()
             && $user->mealPlans()->where('week_start_date', $weekStart->toDateString())->exists();

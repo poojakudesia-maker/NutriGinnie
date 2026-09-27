@@ -13,10 +13,20 @@ use Illuminate\View\View;
 
 class MealPlanController extends Controller
 {
+    /**
+     * The "active" week is whichever week contains tomorrow, not today — so a plan
+     * generated/viewed/sent stays consistent across the boundary. This only differs
+     * from "today's week" on Sundays, when tomorrow rolls into the next week.
+     */
+    protected function activeWeekStart($user): Carbon
+    {
+        return Carbon::now($user->timezone ?: 'Asia/Kolkata')->addDay()->startOfWeek(Carbon::MONDAY);
+    }
+
     public function show(Request $request): View
     {
         $user = $request->user();
-        $weekStart = Carbon::now($user->timezone ?: 'Asia/Kolkata')->startOfWeek(Carbon::MONDAY);
+        $weekStart = $this->activeWeekStart($user);
 
         $days = $user->mealPlans()
             ->where('week_start_date', $weekStart->toDateString())
@@ -97,7 +107,7 @@ class MealPlanController extends Controller
         // afterResponse(): the user gets redirected immediately instead of the
         // request hanging until Claude replies (30-90s), which on shared
         // hosting exceeds the front-end proxy's timeout and 504s.
-        GenerateWeeklyPlan::dispatch($user)->afterResponse();
+        GenerateWeeklyPlan::dispatch($user, $this->activeWeekStart($user))->afterResponse();
 
         return redirect()->route('meal-plan.show')->with('status', 'Generating your plan — this can take up to a minute…');
     }
@@ -107,7 +117,7 @@ class MealPlanController extends Controller
     {
         $user = $request->user();
         $tomorrow = Carbon::now($user->timezone ?: 'Asia/Kolkata')->addDay();
-        $weekStart = $tomorrow->copy()->startOfWeek(Carbon::MONDAY);
+        $weekStart = $this->activeWeekStart($user);
         // diffInDays returns a float when either side carries a time-of-day component
         // (e.g. 4.48), which never matches the integer day_index column — round it down
         // to a whole day count first.
@@ -138,7 +148,7 @@ class MealPlanController extends Controller
     public function downloadPdf(Request $request): Response
     {
         $user = $request->user();
-        $weekStart = Carbon::now($user->timezone ?: 'Asia/Kolkata')->startOfWeek(Carbon::MONDAY);
+        $weekStart = $this->activeWeekStart($user);
 
         $days = $user->mealPlans()
             ->where('week_start_date', $weekStart->toDateString())
