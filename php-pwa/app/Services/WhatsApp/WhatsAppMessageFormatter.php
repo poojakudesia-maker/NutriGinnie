@@ -45,8 +45,6 @@ class WhatsAppMessageFormatter
         );
 
         $lines[] = '';
-        $lines[] = '━━━━━━━━━━━━━━━';
-        $lines[] = '';
         $lines[] = '🛒 *Grocery list for tomorrow*';
         $lines[] = '';
 
@@ -62,5 +60,26 @@ class WhatsAppMessageFormatter
         $lines[] = 'Get these ready tonight — stay consistent! 💪';
 
         return implode("\n", $lines);
+    }
+
+    /**
+     * Meta's Cloud API rejects template body parameters containing newlines,
+     * tabs, or 4+ consecutive spaces (error 132018) — the template's own fixed
+     * text may have line breaks, but a variable value may not. Converts the
+     * pretty multi-line message into one WhatsApp-safe line, and keeps it
+     * under the ~1024 character template body limit.
+     */
+    public static function forTemplateParam(string $text, int $maxLength = 1000): string
+    {
+        $flat = preg_replace('/\s*\n\s*/', '  •  ', trim($text));
+        $flat = preg_replace('/[\t\r]+/', ' ', $flat);
+        $flat = preg_replace('/(  •  ){2,}/', '  •  ', $flat);
+        $flat = preg_replace('/ {4,}/', '   ', $flat);
+
+        if (mb_strlen($flat) > $maxLength) {
+            $flat = mb_substr($flat, 0, $maxLength - 1) . '…';
+        }
+
+        return $flat;
     }
 }

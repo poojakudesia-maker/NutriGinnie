@@ -43,6 +43,7 @@ class WhatsAppDispatcher
 
         $items = collect($groceries?->items ?? []);
         $text = WhatsAppMessageFormatter::dietAndGrocery($user, $day, $items);
+        $templateParam = WhatsAppMessageFormatter::forTemplateParam($text);
         $templateName = config('services.meta_whatsapp.template_name');
 
         $sent = 0;
@@ -50,12 +51,12 @@ class WhatsAppDispatcher
         $errors = [];
 
         foreach ($numbers as $number) {
-            $error = $this->logAndSend($user, $number, 'DIET_TEXT', $text, function () use ($number, $text, $templateName) {
+            $error = $this->logAndSend($user, $number, 'DIET_TEXT', $text, function () use ($number, $templateParam, $templateName) {
                 if (! $templateName) {
                     throw new \RuntimeException('WHATSAPP_TEMPLATE_NAME is not configured.');
                 }
 
-                return $this->client->sendTemplate($number, $templateName, [$text]);
+                return $this->client->sendTemplate($number, $templateName, [$templateParam]);
             });
 
             if ($error === null) {
