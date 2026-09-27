@@ -191,6 +191,26 @@ class ProfileSetupController extends Controller
         return redirect()->route('profile.show')->with('status', 'WhatsApp numbers updated!');
     }
 
+    public function editDeliveryEmails(Request $request): View
+    {
+        return view('profile.delivery-emails', ['user' => $request->user()]);
+    }
+
+    public function updateDeliveryEmails(Request $request): RedirectResponse
+    {
+        $user = $request->user();
+
+        $validated = $request->validate([
+            'secondary_email' => ['nullable', 'string', 'email', 'max:255', Rule::unique('users', 'secondary_email')->ignore($user->id), Rule::notIn([$user->email])],
+        ]);
+
+        $user->fill([
+            'secondary_email' => $validated['secondary_email'] ?? null,
+        ])->save();
+
+        return redirect()->route('profile.show')->with('status', 'Delivery emails updated!');
+    }
+
     protected function updatePhoto(Request $request, User $user): void
     {
         $validated = $request->validate([

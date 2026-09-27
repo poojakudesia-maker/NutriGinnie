@@ -71,7 +71,7 @@
                     <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[var(--color-sage-light)] text-xl">✅</div>
                     <div class="flex-1">
                         <p class="text-sm font-semibold text-[var(--color-charcoal)]">This week's plan is ready</p>
-                        <p class="text-xs text-[var(--color-charcoal-muted)]">Delivered nightly on WhatsApp</p>
+                        <p class="text-xs text-[var(--color-charcoal-muted)]">Delivered nightly by email</p>
                     </div>
                     <x-button href="{{ route('meal-plan.show') }}" variant="secondary" class="!w-auto px-4">View</x-button>
                 </x-card>

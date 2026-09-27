@@ -5,7 +5,7 @@
                 📱
             </div>
             <h1 class="text-2xl font-bold text-[var(--color-charcoal)]">One more thing</h1>
-            <p class="mt-1 text-sm text-[var(--color-charcoal-muted)]">Add your WhatsApp number so we can send your daily plan.</p>
+            <p class="mt-1 text-sm text-[var(--color-charcoal-muted)]">Add your mobile number to finish setting up your account.</p>
         </div>
 
         <x-card>

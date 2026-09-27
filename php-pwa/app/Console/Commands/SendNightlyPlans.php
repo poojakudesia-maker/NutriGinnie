@@ -3,8 +3,8 @@
 namespace App\Console\Commands;
 
 use App\Models\User;
+use App\Services\DietPlanEmailer;
 use App\Services\DietPlanGenerator;
-use App\Services\WhatsApp\WhatsAppDispatcher;
 use Carbon\Carbon;
 use Illuminate\Console\Attributes\Description;
 use Illuminate\Console\Attributes\Signature;
@@ -14,14 +14,14 @@ use Throwable;
 /**
  * Runs every 15 minutes (see routes/console.php). For each user whose local
  * clock currently matches their chosen dispatch_hour, generates tomorrow's
- * plan if it doesn't exist yet and sends the combined diet + grocery
- * WhatsApp message — mirroring the "send tonight for tomorrow" cadence.
+ * plan if it doesn't exist yet and emails the combined diet + grocery
+ * plan — mirroring the "send tonight for tomorrow" cadence.
  */
 #[Signature('app:send-nightly-plans')]
-#[Description('Send each user their diet + grocery plan for tomorrow via WhatsApp, at their chosen local hour.')]
+#[Description("Email each user their diet + grocery plan for tomorrow, at their chosen local hour.")]
 class SendNightlyPlans extends Command
 {
-    public function handle(DietPlanGenerator $generator, WhatsAppDispatcher $dispatcher): int
+    public function handle(DietPlanGenerator $generator, DietPlanEmailer $emailer): int
     {
         $users = User::whereNotNull('email_verified_at')
             ->where('whatsapp_reminders_enabled', true)
@@ -71,22 +71,29 @@ class SendNightlyPlans extends Command
                 continue;
             }
 
-            $dispatcher->sendDayPlan($user, $day);
-            $this->info("Sent tomorrow's plan to user {$user->id}.");
+            $result = $emailer->sendDayPlan($user, $day);
+
+            if ($result['sent'] > 0) {
+                $user->forceFill(['last_plan_emailed_at' => now()])->save();
+                $this->info("Emailed tomorrow's plan to user {$user->id}.");
+            } else {
+                $this->error("Failed to email plan to user {$user->id}: " . implode(' ', $result['errors']));
+            }
         }
 
         return self::SUCCESS;
     }
 
+    /** Guards against double-sending if the scheduler's 15-minute tick overlaps the dispatch hour twice. */
     protected function alreadySentToday(User $user, Carbon $now): bool
     {
-        return $user->whatsappLogs()
-            ->where('message_type', 'DIET_TEXT')
-            ->where('status', 'SENT')
-            ->whereBetween('sent_at', [
-                $now->copy()->startOfDay()->utc(),
-                $now->copy()->endOfDay()->utc(),
-            ])
-            ->exists();
+        if (! $user->last_plan_emailed_at) {
+            return false;
+        }
+
+        return $user->last_plan_emailed_at->betweenIncluded(
+            $now->copy()->startOfDay()->utc(),
+            $now->copy()->endOfDay()->utc(),
+        );
     }
 }

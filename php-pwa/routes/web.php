@@ -49,6 +49,8 @@ Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileSetupController::class, 'show'])->name('profile.show');
     Route::get('/profile/whatsapp', [ProfileSetupController::class, 'editWhatsapp'])->name('profile.whatsapp.edit');
     Route::post('/profile/whatsapp', [ProfileSetupController::class, 'updateWhatsapp'])->name('profile.whatsapp.update');
+    Route::get('/profile/delivery-emails', [ProfileSetupController::class, 'editDeliveryEmails'])->name('profile.delivery-emails.edit');
+    Route::post('/profile/delivery-emails', [ProfileSetupController::class, 'updateDeliveryEmails'])->name('profile.delivery-emails.update');
     Route::get('/profile/{step}', [ProfileSetupController::class, 'edit'])->name('profile.edit');
     Route::post('/profile/{step}', [ProfileSetupController::class, 'update'])->name('profile.update');
 

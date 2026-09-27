@@ -35,7 +35,7 @@
                     <input id="mobile_number" name="mobile_number" type="tel" value="{{ old('mobile_number') }}" required
                         placeholder="+91XXXXXXXXXX"
                         class="w-full rounded-xl border border-[var(--color-warm-border)] bg-white px-3 py-2.5 text-sm focus:border-[var(--color-orange)] focus:outline-none focus:ring-2 focus:ring-[var(--color-orange-light)]">
-                    <p class="mt-1 text-xs text-[var(--color-charcoal-muted)]">Your weekly diet plan will be sent here via WhatsApp.</p>
+                    <p class="mt-1 text-xs text-[var(--color-charcoal-muted)]">Used to reach you if we ever need to — your plan itself goes to your email.</p>
                     @error('mobile_number')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
                 </div>
 

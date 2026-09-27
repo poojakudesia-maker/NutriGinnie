@@ -30,15 +30,15 @@
 
         <x-card class="flex items-center justify-between gap-3">
             <div class="min-w-0">
-                <p class="text-sm font-semibold text-[var(--color-charcoal)]">📱 WhatsApp numbers</p>
+                <p class="text-sm font-semibold text-[var(--color-charcoal)]">📧 Delivery emails</p>
                 <p class="truncate text-xs text-[var(--color-charcoal-muted)]">
-                    {{ $user->mobile_number ?: 'Not set' }}
-                    @if (is_array($user->whatsapp_numbers) && count($user->whatsapp_numbers) > 1)
-                        + {{ count($user->whatsapp_numbers) - 1 }} more
+                    {{ $user->email }}
+                    @if ($user->secondary_email)
+                        + 1 more
                     @endif
                 </p>
             </div>
-            <a href="{{ route('profile.whatsapp.edit') }}" class="shrink-0 text-xs font-semibold text-[var(--color-orange-dark)]">Edit</a>
+            <a href="{{ route('profile.delivery-emails.edit') }}" class="shrink-0 text-xs font-semibold text-[var(--color-orange-dark)]">Edit</a>
         </x-card>
 
         @foreach ($rows as $row)

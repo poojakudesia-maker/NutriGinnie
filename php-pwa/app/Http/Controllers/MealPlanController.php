@@ -3,7 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Jobs\GenerateWeeklyPlan;
-use App\Services\WhatsApp\WhatsAppDispatcher;
+use App\Services\DietPlanEmailer;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
@@ -112,8 +112,8 @@ class MealPlanController extends Controller
         return redirect()->route('meal-plan.show')->with('status', 'Generating your plan — this can take up to a minute…');
     }
 
-    /** Sends tomorrow's plan — matches the nightly scheduler's semantics (sent the evening before). */
-    public function sendNow(Request $request, WhatsAppDispatcher $dispatcher): RedirectResponse
+    /** Emails tomorrow's plan — matches the nightly scheduler's semantics (sent the evening before). */
+    public function sendNow(Request $request, DietPlanEmailer $emailer): RedirectResponse
     {
         $user = $request->user();
         $tomorrow = Carbon::now($user->timezone ?: 'Asia/Kolkata')->addDay();
@@ -132,17 +132,17 @@ class MealPlanController extends Controller
             return redirect()->route('meal-plan.show')->withErrors(['plan' => "No plan for {$tomorrow->format('l')} yet — generate this week's plan first."]);
         }
 
-        $result = $dispatcher->sendDayPlan($user, $day);
+        $result = $emailer->sendDayPlan($user, $day);
 
         if ($result['sent'] === 0) {
-            return redirect()->route('meal-plan.show')->withErrors(['plan' => 'Could not send to WhatsApp: ' . implode(' ', $result['errors'])]);
+            return redirect()->route('meal-plan.show')->withErrors(['plan' => 'Could not email your plan: ' . implode(' ', $result['errors'])]);
         }
 
         if ($result['failed'] > 0) {
-            return redirect()->route('meal-plan.show')->with('status', "Sent to {$result['sent']} number(s), but failed for {$result['failed']}: " . implode(' ', $result['errors']));
+            return redirect()->route('meal-plan.show')->with('status', "Emailed to {$result['sent']} address(es), but failed for {$result['failed']}: " . implode(' ', $result['errors']));
         }
 
-        return redirect()->route('meal-plan.show')->with('status', "{$tomorrow->format('l')}'s plan was sent to WhatsApp!");
+        return redirect()->route('meal-plan.show')->with('status', "{$tomorrow->format('l')}'s plan was emailed to you!");
     }
 
     public function downloadPdf(Request $request): Response

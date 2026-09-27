@@ -38,7 +38,7 @@
             @if ($days->isNotEmpty())
                 <form method="POST" action="{{ route('meal-plan.send-now') }}">
                     @csrf
-                    <x-button type="submit" variant="ghost">💬 Send tomorrow's plan to WhatsApp</x-button>
+                    <x-button type="submit" variant="ghost">📧 Email tomorrow's plan to me</x-button>
                 </form>
             @endif
 

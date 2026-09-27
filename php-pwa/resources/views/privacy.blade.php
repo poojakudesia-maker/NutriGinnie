@@ -23,7 +23,7 @@
                 <li><strong>Dietitian information:</strong> your dietitian's name and contact details, and any diet-plan PDF you choose to upload.</li>
                 <li><strong>Recipes:</strong> any recipe text or links you paste into the app.</li>
                 <li><strong>Profile photo:</strong> if you choose to upload one.</li>
-                <li><strong>WhatsApp delivery numbers:</strong> the mobile number(s) you designate to receive your daily plan.</li>
+                <li><strong>Delivery emails:</strong> your account email and, if you add one, an additional email address to receive your daily plan.</li>
                 <li><strong>Usage data:</strong> logs of meal plans generated, messages sent, and delivery status (e.g. sent/delivered/read/failed), used to operate and troubleshoot the Service.</li>
             </ul>
         </x-card>
@@ -36,7 +36,7 @@
                 <li>Calculate your BMI, estimated body fat percentage, calorie targets, macronutrient targets, and workout recommendations.</li>
                 <li>Generate a personalised weekly meal plan using an AI service (see Section 3), optionally combined with a diet plan provided by your own dietitian.</li>
                 <li>Parse and structure recipes you provide, and estimate their nutritional content.</li>
-                <li>Deliver your daily meal plan and grocery list to you via WhatsApp and make a downloadable PDF available.</li>
+                <li>Email your daily meal plan and grocery list to you and make a downloadable PDF available.</li>
                 <li>Communicate service-related messages, such as your email activation code.</li>
             </ul>
         </x-card>
@@ -45,20 +45,19 @@
             <h2 class="mb-2 font-semibold">3. Third-party services we use</h2>
             <ul class="ml-4 flex list-disc flex-col gap-1.5">
                 <li><strong>Anthropic (Claude AI):</strong> your profile, food preferences, pasted recipes, and (if provided) your dietitian's PDF are sent to Anthropic's API to generate meal plans and parse recipes. Anthropic processes this data to return a result to us; see Anthropic's own privacy policy for how they handle API data.</li>
-                <li><strong>Meta WhatsApp Business Platform:</strong> we use Meta's WhatsApp Business Cloud API to deliver your daily plan to the WhatsApp number(s) you provide. Meta processes message content in order to deliver it; see Meta's WhatsApp Business Terms and Privacy Policy.</li>
-                <li><strong>Hosting and email:</strong> our hosting provider stores your account data and sends account-related emails (such as your activation code) on our behalf.</li>
+                <li><strong>Hosting and email:</strong> our hosting provider stores your account data and sends account-related emails (such as your activation code and daily plan) on our behalf.</li>
             </ul>
             <p class="mt-2">We do not sell your personal information to anyone.</p>
         </x-card>
 
         <x-card>
-            <h2 class="mb-2 font-semibold">4. WhatsApp messaging and your consent</h2>
+            <h2 class="mb-2 font-semibold">4. Email delivery and your consent</h2>
             <p>
-                We only send WhatsApp messages to numbers you explicitly provide to us for this purpose, either
-                at registration or in your Profile settings. By providing a number for WhatsApp delivery, you
-                consent to receive your daily diet plan and related grocery list from us on that number. You can
-                stop this at any time by removing the number from your Profile settings, disabling WhatsApp
-                reminders, or contacting us (Section 8).
+                We send your daily diet plan and grocery list by email to your account email address and, if
+                you add one, one additional email address you provide in Profile settings. By adding an
+                additional email address, you consent to us sending your plan to it. You can stop this at any
+                time by removing the address from your Profile settings, disabling plan reminders, or
+                contacting us (Section 8).
             </p>
         </x-card>
 
@@ -79,7 +78,7 @@
                 <li>Review and update most of your profile information yourself, in Profile settings.</li>
                 <li>Request a copy of the personal data we hold about you.</li>
                 <li>Request correction or deletion of your data, including full account deletion.</li>
-                <li>Withdraw consent to WhatsApp delivery at any time (Section 4).</li>
+                <li>Withdraw consent to additional-email delivery at any time (Section 4).</li>
             </ul>
             <p class="mt-2">To exercise any of these rights, contact us using the details in Section 8.</p>
         </x-card>
