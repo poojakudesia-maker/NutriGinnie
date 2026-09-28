@@ -1,0 +1,48 @@
+@import "tailwindcss";
+
+:root {
+  --background: #fbf6ef;
+  --foreground: #2b2620;
+
+  /* Warm palette: cream surfaces, terracotta-orange accent, sage-green secondary */
+  --color-cream: #fbf6ef;
+  --color-cream-deep: #f3e9da;
+  --color-surface: #fffcf8;
+  --color-charcoal: #2b2620;
+  --color-charcoal-muted: #8b8478;
+  --color-orange: #f4703a;
+  --color-orange-light: #fde3d3;
+  --color-orange-dark: #d9581f;
+  --color-sage: #7c9a79;
+  --color-sage-light: #e3ecdf;
+  --color-warm-border: #ece1d1;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-cream: var(--color-cream);
+  --color-cream-deep: var(--color-cream-deep);
+  --color-surface: var(--color-surface);
+  --color-charcoal: var(--color-charcoal);
+  --color-charcoal-muted: var(--color-charcoal-muted);
+  --color-orange: var(--color-orange);
+  --color-orange-light: var(--color-orange-light);
+  --color-orange-dark: var(--color-orange-dark);
+  --color-sage: var(--color-sage);
+  --color-sage-light: var(--color-sage-light);
+  --color-warm-border: var(--color-warm-border);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+}
+
+/* Warm gradient used for hero/banner sections (dashboard header, auth screens) */
+.gradient-hero {
+  background: radial-gradient(120% 120% at 15% 0%, #fdb483 0%, #f4703a 45%, #c9dbc3 100%);
+}
