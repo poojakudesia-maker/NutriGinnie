@@ -1,0 +1,282 @@
+<title>Pooja Kudesia AI Lab</title>
+<meta name="description" content="AI Lab: products Pooja Kudesia designs and builds hands-on with AI. MyGinnie, NutriPing and ApexSurge.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;700;800&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one narrow reading column; each experiment is a row with a sticky meta rail on the left
+   and the story + a product snippet on the right. Quiet page, the product snippets carry the colour. */
+:root {
+  --bg: #f5f6f3;
+  --surface: #ffffff;
+  --ink: #16191b;
+  --muted: #5d6460;
+  --line: #dfe2dc;
+  --accent: #1d6b57;
+  --nutri: #e8f1e4;  --nutri-ink: #2d5a22;
+  --apex: #ece9f6;   --apex-ink: #463a8a;
+  --ginnie: #f6ece3; --ginnie-ink: #8a4a1f;
+  --display: "Schibsted Grotesk", "Helvetica Neue", Arial, sans-serif;
+  --body: "Source Serif 4", Georgia, "Times New Roman", serif;
+  --mono: "JetBrains Mono", ui-monospace, Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #111413; --surface: #1a1e1c; --ink: #ecefea; --muted: #9aa39d; --line: #2b302d; --accent: #6cc7a8;
+    --nutri: #1d2a1a; --nutri-ink: #a9d69a; --apex: #211e33; --apex-ink: #bcb2f2; --ginnie: #2c2119; --ginnie-ink: #f0b98c;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #111413; --surface: #1a1e1c; --ink: #ecefea; --muted: #9aa39d; --line: #2b302d; --accent: #6cc7a8;
+  --nutri: #1d2a1a; --nutri-ink: #a9d69a; --apex: #211e33; --apex-ink: #bcb2f2; --ginnie: #2c2119; --ginnie-ink: #f0b98c;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 400 1.0625rem/1.65 var(--body); -webkit-font-smoothing: antialiased; }
+a { color: inherit; }
+a:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 2px; }
+.wrap { max-width: 68rem; margin: 0 auto; padding-inline: clamp(16px, 4vw, 40px); }
+
+header.site { display: flex; justify-content: space-between; align-items: center; gap: 1rem; padding-block: 1.5rem; font-family: var(--display); font-size: .95rem; }
+header.site .name { font-weight: 700; text-decoration: none; letter-spacing: -.01em; }
+header.site nav { display: flex; gap: 1.5rem; flex-wrap: wrap; }
+header.site nav a { text-decoration: none; color: var(--muted); }
+header.site nav a[aria-current] { color: var(--ink); }
+header.site nav a:hover { color: var(--ink); }
+
+.intro { padding-block: clamp(3rem, 9vw, 6.5rem) clamp(2.5rem, 6vw, 4.5rem); border-bottom: 1px solid var(--line); }
+.eyebrow { font: 500 .75rem/1 var(--mono); letter-spacing: .12em; text-transform: uppercase; color: var(--accent); margin: 0 0 1.25rem; }
+.intro h1 { font: 800 clamp(2.75rem, 8vw, 5.5rem)/.95 var(--display); letter-spacing: -.035em; margin: 0 0 1.75rem; text-wrap: balance; }
+.intro p { max-width: 38rem; margin: 0; font-size: clamp(1.125rem, 2vw, 1.3rem); color: var(--muted); }
+.intro p + p { margin-top: 1rem; }
+.intro p strong { color: var(--ink); font-weight: 600; }
+
+.index { list-style: none; margin: 2.25rem 0 0; padding: 0; display: grid; gap: 0; max-width: 38rem; font-family: var(--display); }
+.index li { border-top: 1px solid var(--line); }
+.index li:last-child { border-bottom: 1px solid var(--line); }
+.index a { display: grid; grid-template-columns: 7.5rem 1fr auto; gap: 1rem; align-items: baseline; padding-block: .8rem; text-decoration: none; }
+.index a:hover .t { color: var(--accent); }
+.index .t { font-weight: 700; }
+.index .d { color: var(--muted); font-size: .95rem; min-width: 0; }
+.index .y { font: 400 .8rem var(--mono); color: var(--muted); font-variant-numeric: tabular-nums; }
+
+.exp { display: grid; grid-template-columns: 15rem minmax(0, 1fr); gap: clamp(1.5rem, 5vw, 4rem); padding-block: clamp(3.5rem, 8vw, 6rem); border-bottom: 1px solid var(--line); scroll-margin-top: 1rem; }
+.rail { align-self: start; position: sticky; top: calc(env(safe-area-inset-top, 0px) + 1.5rem); display: grid; gap: 1.1rem; font-family: var(--display); font-size: .9rem; }
+.rail dl { margin: 0; display: grid; gap: 1rem; }
+.rail dt { font: 500 .7rem/1 var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--muted); margin-bottom: .35rem; }
+.rail dd { margin: 0; }
+.status { display: inline-flex; align-items: center; gap: .45rem; font-weight: 500; }
+.status::before { content: ""; width: .5rem; height: .5rem; border-radius: 50%; background: currentColor; }
+.status.live { color: var(--accent); }
+.status.build { color: var(--apex-ink); }
+.status.pending { color: var(--ginnie-ink); }
+.tags { display: flex; flex-wrap: wrap; gap: .35rem; }
+.tags span { font: 400 .72rem/1 var(--mono); padding: .35rem .5rem; border: 1px solid var(--line); border-radius: 3px; color: var(--muted); }
+
+.story { min-width: 0; }
+.story h2 { font: 800 clamp(2.25rem, 5vw, 3.5rem)/1 var(--display); letter-spacing: -.03em; margin: 0 0 .6rem; }
+.story .line { font: 400 clamp(1.2rem, 2.4vw, 1.5rem)/1.35 var(--display); color: var(--muted); margin: 0 0 2rem; max-width: 34rem; text-wrap: balance; }
+.story h3 { font: 500 .75rem/1 var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--muted); margin: 2.25rem 0 .75rem; }
+.story p { margin: 0 0 1rem; max-width: 38rem; }
+.story ul { margin: 0 0 1rem; padding-left: 1.1rem; max-width: 38rem; }
+.story li { margin-bottom: .4rem; }
+.story li::marker { color: var(--accent); }
+.more { display: inline-flex; gap: .4rem; margin-top: 1rem; font: 700 .95rem var(--display); text-decoration: none; border-bottom: 1.5px solid currentColor; padding-bottom: 2px; color: var(--accent); }
+
+.stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1px; background: var(--line); border: 1px solid var(--line); margin: 2rem 0 0; max-width: 38rem; }
+.stats div { background: var(--bg); padding: 1rem; }
+.stats b { display: block; font: 800 1.75rem/1.1 var(--display); letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+.stats span { font: 400 .8rem/1.35 var(--display); color: var(--muted); }
+
+/* Product snippets: small, real slices of each product's UI */
+.shot { margin: 2rem 0 0; padding: clamp(1.25rem, 4vw, 2.5rem); border-radius: 6px; display: grid; gap: .75rem; max-width: 38rem; }
+.shot.nutri { background: var(--nutri); color: var(--nutri-ink); }
+.shot.apex { background: var(--apex); color: var(--apex-ink); }
+.shot.ginnie { background: var(--ginnie); color: var(--ginnie-ink); }
+.shot figcaption { font: 500 .7rem/1 var(--mono); letter-spacing: .1em; text-transform: uppercase; opacity: .8; }
+.card { background: var(--surface); color: var(--ink); border-radius: 4px; padding: 1rem 1.1rem; font-family: var(--display); font-size: .9rem; box-shadow: 0 1px 0 var(--line); }
+.card .hd { display: flex; justify-content: space-between; gap: 1rem; font-weight: 700; margin-bottom: .6rem; }
+.card .hd span { font: 400 .78rem var(--mono); color: var(--muted); }
+.meal { display: grid; grid-template-columns: 5.5rem minmax(0, 1fr) auto; gap: .75rem; padding-block: .45rem; border-top: 1px solid var(--line); align-items: baseline; }
+.meal .slot { font: 400 .72rem var(--mono); text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+.meal .kcal { font: 400 .78rem var(--mono); color: var(--muted); font-variant-numeric: tabular-nums; }
+.mission .k { font: 500 .7rem var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--apex-ink); }
+.mission p { margin: .3rem 0 .6rem; font-family: var(--display); }
+.bar { height: 6px; border-radius: 3px; background: var(--line); overflow: hidden; }
+.bar i { display: block; height: 100%; width: 37.5%; background: var(--apex-ink); }
+.dims { display: flex; flex-wrap: wrap; gap: .4rem; }
+.dims span { font: 500 .78rem var(--display); background: var(--surface); color: var(--ink); padding: .35rem .65rem; border-radius: 999px; }
+
+footer.site { padding-block: 3rem 4rem; font-family: var(--display); color: var(--muted); display: flex; justify-content: space-between; flex-wrap: wrap; gap: 1rem; font-size: .9rem; }
+
+@media (max-width: 760px) {
+  .exp { grid-template-columns: minmax(0, 1fr); }
+  .rail { position: static; }
+  .rail dl { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .index a { grid-template-columns: minmax(0, 1fr) auto; }
+  .index .d { grid-column: 1 / -1; grid-row: 2; }
+}
+@media (max-width: 420px) {
+  .stats { grid-template-columns: minmax(0, 1fr); }
+  .meal { grid-template-columns: 4.5rem minmax(0, 1fr); }
+  .meal .kcal { grid-column: 2; }
+}
+@media (prefers-reduced-motion: no-preference) {
+  html { scroll-behavior: smooth; }
+  .more { transition: gap .2s; }
+  .more:hover { gap: .7rem; }
+}
+</style>
+
+<div class="wrap">
+  <header class="site">
+    <a class="name" href="../">Pooja Kudesia</a>
+    <nav aria-label="Main">
+      <a href="../#work">Work</a>
+      <a href="./" aria-current="page">AI Lab</a>
+      <a href="../#about">About</a>
+      <a href="../#contact">Contact</a>
+    </nav>
+  </header>
+
+  <section class="intro">
+    <p class="eyebrow">AI Lab</p>
+    <h1>Things I build after hours.</h1>
+    <p>This is where I take an idea from a sketch to a product people can sign up for. I design it, write the prompts, ship the code with AI as my pair, and deal with whatever breaks in production.</p>
+    <p><strong>Designing for AI means getting your hands dirty with it.</strong> Every project here started as a problem I had myself.</p>
+
+    <ol class="index">
+      <li><a href="#myginnie"><span class="t">MyGinnie</span><span class="d">Details coming soon</span><span class="y">2026</span></a></li>
+      <li><a href="#nutriping"><span class="t">NutriPing</span><span class="d">A dietitian's chart, turned into a week of Indian meals</span><span class="y">2026</span></a></li>
+      <li><a href="#apexsurge"><span class="t">ApexSurge</span><span class="d">Turning the books you read into habits you keep</span><span class="y">2026</span></a></li>
+    </ol>
+  </section>
+
+  <!-- TODO(MyGinnie): replace with real content once Pooja shares what MyGinnie is. -->
+  <article class="exp" id="myginnie">
+    <aside class="rail">
+      <dl>
+        <div><dt>Status</dt><dd><span class="status pending">Write-up in progress</span></dd></div>
+        <div><dt>Year</dt><dd>2026</dd></div>
+        <div><dt>Role</dt><dd>Design, build, AI</dd></div>
+      </dl>
+    </aside>
+    <div class="story">
+      <h2>MyGinnie</h2>
+      <p class="line">The full write-up for this project is on its way.</p>
+      <figure class="shot ginnie">
+        <figcaption>MyGinnie</figcaption>
+        <div class="card">Screens and story coming soon.</div>
+      </figure>
+    </div>
+  </article>
+
+  <article class="exp" id="nutriping">
+    <aside class="rail">
+      <dl>
+        <div><dt>Status</dt><dd><span class="status live">Live at nutriping.in</span></dd></div>
+        <div><dt>Timeline</dt><dd>Jul – Sep 2026</dd></div>
+        <div><dt>Role</dt><dd>Product, design, build</dd></div>
+        <div><dt>Platform</dt><dd>Installable PWA</dd></div>
+      </dl>
+      <div class="tags" aria-label="Built with">
+        <span>Claude API</span><span>Laravel</span><span>MySQL</span><span>Next.js</span><span>WhatsApp Cloud API</span><span>Tailwind</span>
+      </div>
+    </aside>
+    <div class="story">
+      <h2>NutriPing</h2>
+      <p class="line">A dietitian's PDF, turned into a week of Indian meals and tonight's grocery list.</p>
+
+      <h3>The problem</h3>
+      <p>A dietitian hands you a chart. It says 1,400 kcal and lists six dishes. Then you're on your own at 7 PM, trying to work out what to cook tomorrow and what to buy for it. Calorie apps want you to log Western portions of food you don't eat. None of them read the plan you already paid for.</p>
+
+      <h3>What I built</h3>
+      <ul>
+        <li>A profile wizard that works out BMI, BMR (Mifflin-St Jeor), TDEE and a safe deficit. If your dietitian already gave you a number, you can type it in instead.</li>
+        <li>Upload a diet chart as a PDF or DOCX. Claude pulls out every dish, and you check the list before anything is saved. Scanned and handwritten charts go to Claude as images so they still get read.</li>
+        <li>Paste a YouTube or Instagram recipe link. YouTube captions are fetched automatically, and Claude turns the recipe into ingredients and macros.</li>
+        <li>A 7-day plan built from your own recipes with no AI call at all. Claude only writes a plan when you haven't given it anything to work with.</li>
+        <li>Swap a single meal, a grocery list combined across the day's meals, and a nightly reminder with tomorrow's plan.</li>
+      </ul>
+
+      <figure class="shot nutri">
+        <figcaption>Tomorrow · 1,400 kcal target</figcaption>
+        <div class="card">
+          <div class="hd">Tuesday <span>1,385 kcal · 92 g protein</span></div>
+          <div class="meal"><span class="slot">Breakfast</span><span>Besan chilla with mint chutney</span><span class="kcal">310</span></div>
+          <div class="meal"><span class="slot">Snack</span><span>Roasted chana, buttermilk</span><span class="kcal">180</span></div>
+          <div class="meal"><span class="slot">Lunch</span><span>Moong dal, jeera rice, cucumber raita</span><span class="kcal">420</span></div>
+          <div class="meal"><span class="slot">Snack</span><span>Sprouts chaat</span><span class="kcal">150</span></div>
+          <div class="meal"><span class="slot">Dinner</span><span>Paneer bhurji, 2 phulka</span><span class="kcal">325</span></div>
+        </div>
+      </figure>
+
+      <h3>What production taught me</h3>
+      <p>The first version ran on Next.js and Vercel. Hobby-plan cron limits and serverless timeouts kept getting in the way, so I rewrote it in Laravel on ordinary PHP hosting. Plan generation still timed out with a 504, so it now runs as a background job and the screen polls until it's done.</p>
+      <p>Delivery was meant to be WhatsApp. Meta rejects template messages that contain line breaks, so a whole day of meals had to fit on one line in under 1,000 characters. App Review asks for a privacy policy before anything gets sent. I built all of it, then switched the nightly plan to email so people could start using it while the review is pending. The design lesson: the channel is part of the product, and somebody else controls it.</p>
+
+      <div class="stats">
+        <div><b>65</b><span>days from first commit to live</span></div>
+        <div><b>2</b><span>stacks shipped, Vercel then Hostinger</span></div>
+        <div><b>0</b><span>AI calls to plan from your own recipes</span></div>
+      </div>
+
+      <a class="more" href="https://nutriping.in" rel="noopener">Visit nutriping.in <span aria-hidden="true">→</span></a>
+    </div>
+  </article>
+
+  <article class="exp" id="apexsurge">
+    <aside class="rail">
+      <dl>
+        <div><dt>Status</dt><dd><span class="status build">In build</span></dd></div>
+        <div><dt>Timeline</dt><dd>Sep 2026 – now</dd></div>
+        <div><dt>Role</dt><dd>Product, design, build</dd></div>
+        <div><dt>Platform</dt><dd>Installable PWA</dd></div>
+      </dl>
+      <div class="tags" aria-label="Built with">
+        <span>Claude API</span><span>React</span><span>Firebase</span><span>Web Speech API</span><span>Tailwind</span>
+      </div>
+    </aside>
+    <div class="story">
+      <h2>ApexSurge</h2>
+      <p class="line">Most people who read self-improvement books never apply them. This turns a book into a daily experiment.</p>
+
+      <h3>The problem</h3>
+      <p>Summary apps like Headway made it faster to get through books. They didn't make anyone change. You finish <em>Deep Work</em>, feel motivated for a weekend, and on Monday your calendar looks the same as last week. The gap is between knowing something and doing it, and consuming more content doesn't close it.</p>
+
+      <h3>What I'm building</h3>
+      <ul>
+        <li>You pick goals in four areas (career, personal growth, communication and productivity), and Claude suggests books that fit them.</li>
+        <li>Daily missions of 5 to 15 minutes. Each one takes a single idea from the book and gives you a small real-world test to try today.</li>
+        <li>An 8-week roadmap with weekly reviews, plus an AI coach that answers questions using only the books you've worked through.</li>
+        <li>Roleplay for the hard parts, like practising a difficult conversation before you have it.</li>
+        <li>Missions read aloud with the browser's built-in speech, so audio costs nothing to run.</li>
+      </ul>
+
+      <figure class="shot apex">
+        <figcaption>Today's mission · Week 3 of 8</figcaption>
+        <div class="card mission">
+          <span class="k">Deep Work · Rule 2</span>
+          <p>Block one 45-minute slot before noon. Phone in another room. Write down what you finished when the timer ends.</p>
+          <div class="bar" role="img" aria-label="Roadmap progress: week 3 of 8"><i></i></div>
+        </div>
+        <div class="dims"><span>Career</span><span>Personal growth</span><span>Communication</span><span>10X productivity</span></div>
+      </figure>
+
+      <h3>Design decisions so far</h3>
+      <p>I measure a mission by whether you tried it, not whether you read it. I kept running costs to $3–7 a month at MVP scale, and about $20 at a thousand users, by caching book summaries and using free browser speech instead of a paid voice API. That means I can test it with real people before charging anyone.</p>
+
+      <div class="stats">
+        <div><b>4</b><span>growth areas</span></div>
+        <div><b>5–15</b><span>minutes per daily mission</span></div>
+        <div><b>$3–7</b><span>running cost per month at MVP</span></div>
+      </div>
+    </div>
+  </article>
+
+  <footer class="site">
+    <span>Pooja Kudesia</span>
+    <a href="../">Back to work</a>
+  </footer>
+</div>
